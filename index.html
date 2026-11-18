@@ -50,20 +50,34 @@
     }
     header.appbar {
       display: flex;
-      align-items: baseline;
+      align-items: center;
       justify-content: space-between;
       gap: 12px;
-      padding: 18px 20px 8px;
+      padding: 16px 20px 8px;
     }
     header h1 {
       margin: 0;
-      font-size: 1.7rem;
-      font-weight: 650;
-      letter-spacing: 0.04em;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 3px;
+      color: var(--ink);
+    }
+    .logo-mark {
+      width: 68px;
+      height: 26px;
+      display: block;
+    }
+    .logo-word {
+      font-size: 0.98rem;
+      font-weight: 700;
+      letter-spacing: 0.22em;
+      line-height: 1;
     }
     header .count {
       color: var(--muted);
       font-size: 0.85rem;
+      margin-top: 6px;
     }
     .menu-btn {
       appearance: none;
@@ -344,7 +358,18 @@
 <body>
   <header class="appbar">
     <div>
-      <h1>一眼墙</h1>
+      <h1>
+        <svg class="logo-mark" viewBox="0 0 88 34" aria-hidden="true">
+          <g fill="none" stroke="currentColor" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M13 13.5 L3.5 6"/>
+            <path d="M75 13.5 L84.5 6"/>
+            <path d="M36.5 18.2 H51.5"/>
+            <rect x="10" y="9" width="28" height="18" rx="8"/>
+            <rect x="50" y="9" width="28" height="18" rx="8"/>
+          </g>
+        </svg>
+        <span class="logo-word">强势文化</span>
+      </h1>
     </div>
     <button class="menu-btn" id="menuBtn" type="button">更多</button>
   </header>
