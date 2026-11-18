@@ -323,7 +323,7 @@
     .menu-card {
       position: absolute;
       right: 16px;
-      top: calc(var(--safe-t) + 52px);
+      top: calc(var(--safe-t) + 96px);
       background: var(--bar);
       border-radius: 16px;
       padding: 8px;
@@ -348,6 +348,44 @@
       font-size: 0.78rem;
       padding: 8px 12px 10px;
       line-height: 1.45;
+    }
+    .menu-card.paste-card {
+      left: 16px;
+      right: 16px;
+      min-width: 0;
+    }
+    .paste-title {
+      margin: 4px 12px 8px;
+      font-size: 0.95rem;
+      font-weight: 650;
+    }
+    .paste-card textarea {
+      display: block;
+      width: 100%;
+      min-height: 9em;
+      resize: vertical;
+      border: 1px solid var(--line);
+      background: var(--paper);
+      color: var(--ink);
+      border-radius: 12px;
+      padding: 10px 12px;
+      font: inherit;
+      font-size: 0.85rem;
+      line-height: 1.45;
+    }
+    .paste-actions {
+      display: flex;
+      gap: 8px;
+      padding: 4px;
+    }
+    .paste-actions button {
+      flex: 1;
+      text-align: center;
+    }
+    #pasteImport {
+      background: var(--ink);
+      color: var(--paper);
+      font-weight: 600;
     }
     @keyframes rise {
       from { opacity: 0; transform: translateY(8px) scale(0.98); }
@@ -410,12 +448,22 @@
   </div>
 
   <div class="menu" id="menu">
-    <div class="menu-card">
+    <div class="menu-card" id="menuMain">
       <button type="button" id="exportBtn">导出备份</button>
-      <label class="file">导入备份
+      <button type="button" id="notesImportBtn">从备忘录导入</button>
+      <label class="file">从文件导入
         <input id="importFile" type="file" accept="text/plain,.txt,.text,application/json,.json,text/markdown,.md" hidden>
       </label>
-      <p class="hint">导出备份是一份普通文本，可在「备忘录」里直接打开。分享时选「备忘录」即可保存。iPhone 用 Safari 打开后，点底部分享，再选「添加到主屏幕」。记录保存在这台手机里。</p>
+      <p class="hint">导出时在分享里选「备忘录」保存。要导回：在备忘录里全选复制，点「从备忘录导入」粘贴。也可以从文件导入 .txt 或旧的 JSON。记录只在这台手机、这一种打开方式里（主屏幕图标和 Safari 各存一份）。</p>
+    </div>
+    <div class="menu-card paste-card" id="pasteCard" hidden>
+      <p class="paste-title">从备忘录导入</p>
+      <textarea id="pasteBackup" rows="8" placeholder="在备忘录里全选复制备份，粘贴到这里"></textarea>
+      <p class="hint" id="pasteStatus">粘贴完整备份，里面有【】和「原文」。已有的记录会保留，不会被清掉。</p>
+      <div class="paste-actions">
+        <button type="button" id="pasteCancel">返回</button>
+        <button type="button" id="pasteImport">导入</button>
+      </div>
     </div>
   </div>
 
@@ -624,9 +672,6 @@
     });
     sheetBg.addEventListener("click", closeSheet);
     document.getElementById("menuBtn").addEventListener("click", () => menu.classList.add("open"));
-    menu.addEventListener("click", (e) => {
-      if (e.target === menu) menu.classList.remove("open");
-    });
     function pad2(n) {
       return String(n).padStart(2, "0");
     }
@@ -672,7 +717,8 @@
       return new Date(m[1] + "-" + m[2] + "-" + m[3] + "T" + m[4] + ":" + m[5] + ":00+08:00").getTime();
     }
     function parseTextBackup(text) {
-      const blocks = String(text || "").split(/\n(?=【)/);
+      const src = String(text || "").replace(/^\uFEFF/, "").replace(/\r\n/g, "\n").replace(/\u00a0/g, " ");
+      const blocks = src.split(/\n(?=\s*【)/);
       const out = [];
       blocks.forEach((block) => {
         const tm = block.match(/【([^】]+)】/);
@@ -680,7 +726,7 @@
         const tag = tm[1].trim();
         if (!tag) return;
         const timeM = block.match(/时间：([^\n]+)/);
-        const rawM = block.match(/原文：([\s\S]*?)(?=\n【|$)/);
+        const rawM = block.match(/原文：([\s\S]*?)(?=\n\s*【|$)/);
         let raw = rawM ? rawM[1].trim() : "";
         raw = raw.replace(/\n置顶：.*$/, "").trim();
         out.push({
@@ -704,26 +750,38 @@
       }
       return parseTextBackup(raw);
     }
+    function noteKey(n) {
+      return (n.tag || "") + "\0" + (n.raw || "") + "\0" + String(n.createdAt || "");
+    }
     function mergeImported(list) {
       const map = new Map(notes.map((n) => [n.id, n]));
-      const seen = new Set(notes.map((n) => (n.tag || "") + "\0" + (n.raw || "") + "\0" + String(n.createdAt || "")));
+      const seen = new Set(notes.map(noteKey));
+      let added = 0;
       list.forEach((n) => {
         if (!n || !n.tag) return;
         if (n.id && map.has(n.id)) {
           const merged = Object.assign({}, map.get(n.id), n);
           map.set(n.id, merged);
+          seen.add(noteKey(merged));
           return;
         }
-        const key = (n.tag || "") + "\0" + (n.raw || "") + "\0" + String(n.createdAt || "");
+        const key = noteKey(n);
         if (seen.has(key)) return;
         if (!n.id) n.id = uid();
         if (!n.color) n.color = colorFor(n.id);
         map.set(n.id, n);
         seen.add(key);
+        added += 1;
       });
       notes = Array.from(map.values());
       persist();
       render();
+      return added;
+    }
+    function importBackupText(text) {
+      const data = parseBackup(text);
+      if (!data.length) return { ok: false, added: 0 };
+      return { ok: true, added: mergeImported(data) };
     }
     function downloadText(filename, text) {
       const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
@@ -738,7 +796,7 @@
       const stamp = formatStamp(Date.now()).replace(/[ :]/g, "-");
       const filename = "一眼墙-备份-" + stamp + ".txt";
       const file = new File([text], filename, { type: "text/plain" });
-      menu.classList.remove("open");
+      closeMenu();
       try {
         if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
           await navigator.share({ files: [file], title: "一眼墙备份" });
@@ -759,14 +817,74 @@
       const reader = new FileReader();
       reader.onload = () => {
         try {
-          const data = parseBackup(String(reader.result || ""));
-          if (data.length) mergeImported(data);
+          importBackupText(String(reader.result || ""));
         } catch {}
-        menu.classList.remove("open");
+        closeMenu();
         e.target.value = "";
       };
       reader.readAsText(file);
     });
+    const pasteCard = document.getElementById("pasteCard");
+    const menuMain = document.getElementById("menuMain");
+    const pasteBackup = document.getElementById("pasteBackup");
+    const pasteStatus = document.getElementById("pasteStatus");
+    function closeMenu() {
+      menu.classList.remove("open");
+      menuMain.hidden = false;
+      pasteCard.hidden = true;
+      pasteBackup.value = "";
+    }
+    function openPasteImport() {
+      menuMain.hidden = true;
+      pasteCard.hidden = false;
+      pasteStatus.textContent = "粘贴完整备份，里面有【】和「原文」。已有的记录会保留，不会被清掉。";
+      pasteBackup.focus();
+      if (navigator.clipboard && navigator.clipboard.readText) {
+        navigator.clipboard.readText().then((text) => {
+          if (!pasteBackup.value && text && (/【/.test(text) || /^\s*[\[{]/.test(text))) {
+            pasteBackup.value = text;
+          }
+        }).catch(() => {});
+      }
+    }
+    document.getElementById("notesImportBtn").addEventListener("click", openPasteImport);
+    document.getElementById("pasteCancel").addEventListener("click", () => {
+      menuMain.hidden = false;
+      pasteCard.hidden = true;
+      pasteBackup.value = "";
+    });
+    document.getElementById("pasteImport").addEventListener("click", () => {
+      let result;
+      try {
+        result = importBackupText(pasteBackup.value);
+      } catch {
+        pasteStatus.textContent = "没有认出备份。请粘贴完整内容，里面要有【】和「原文」，或旧的 JSON。";
+        return;
+      }
+      if (!result.ok) {
+        pasteStatus.textContent = "没有认出备份。请粘贴完整内容，里面要有【】和「原文」，或旧的 JSON。";
+        return;
+      }
+      if (!result.added) {
+        pasteStatus.textContent = "这些记录已经在墙上，没有重复加入。";
+        return;
+      }
+      closeMenu();
+    });
+    menu.addEventListener("click", (e) => {
+      if (e.target === menu) closeMenu();
+    });
+    if ("launchQueue" in window && launchQueue.setConsumer) {
+      launchQueue.setConsumer(async (params) => {
+        const files = params.files || [];
+        for (const handle of files) {
+          try {
+            const file = await handle.getFile();
+            importBackupText(await file.text());
+          } catch {}
+        }
+      });
+    }
 
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (SR) {
