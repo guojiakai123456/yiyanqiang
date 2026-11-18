@@ -839,13 +839,6 @@
       pasteCard.hidden = false;
       pasteStatus.textContent = "粘贴完整备份，里面有【】和「原文」。已有的记录会保留，不会被清掉。";
       pasteBackup.focus();
-      if (navigator.clipboard && navigator.clipboard.readText) {
-        navigator.clipboard.readText().then((text) => {
-          if (!pasteBackup.value && text && (/【/.test(text) || /^\s*[\[{]/.test(text))) {
-            pasteBackup.value = text;
-          }
-        }).catch(() => {});
-      }
     }
     document.getElementById("notesImportBtn").addEventListener("click", openPasteImport);
     document.getElementById("pasteCancel").addEventListener("click", () => {
