@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f3eee6">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="一眼墙">
+  <meta name="description" content="打开就看见重点。开口或打字记下，提炼成色块。">
+  <title>一眼墙</title>
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="apple-touch-icon" href="./icon-180.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
+  <style>
+    :root {
+      --paper: #f3eee6;
+      --ink: #1a1714;
+      --muted: #6b645c;
+      --line: #e2dbd0;
+      --bar: #fffaf3;
+      --bar-border: #ece6dc;
+      --shadow: 0 10px 28px rgba(40, 28, 16, 0.08);
+      --safe-b: env(safe-area-inset-bottom, 0px);
+      --safe-t: env(safe-area-inset-top, 0px);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --paper: #161412;
+        --ink: #f4efe7;
+        --muted: #b4aba1;
+        --line: #2d2925;
+        --bar: #1e1b18;
+        --bar-border: #332e29;
+        --shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+      }
+      meta[name="theme-color"] { content: #161412; }
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", "Source Han Sans SC", "Microsoft YaHei", system-ui, sans-serif;
+    }
+    body {
+      padding-top: var(--safe-t);
+    }
+    header.appbar {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 18px 20px 8px;
+    }
+    header h1 {
+      margin: 0;
+      font-size: 1.7rem;
+      font-weight: 650;
+      letter-spacing: 0.04em;
+    }
+    header .count {
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+    .menu-btn {
+      appearance: none;
+      border: 0;
+      background: transparent;
+      color: var(--muted);
+      font: inherit;
+      font-size: 0.85rem;
+      padding: 6px 0;
+    }
+    .wall {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      padding: 12px 16px calc(168px + var(--safe-b));
+    }
+    .tile {
+      appearance: none;
+      border: 0;
+      border-radius: 22px;
+      min-height: 134px;
+      padding: 18px 16px 14px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: flex-start;
+      text-align: left;
+      color: #fffaf3;
+      cursor: pointer;
+      animation: rise 0.38s ease both;
+    }
+    .tile.hero {
+      grid-column: 1 / -1;
+      min-height: 116px;
+    }
+    .tile .tag {
+      font-size: 1.38rem;
+      font-weight: 600;
+      line-height: 1.25;
+      letter-spacing: 0.03em;
+      word-break: break-word;
+    }
+    .tile.hero .tag { font-size: 1.7rem; }
+    .tile .meta {
+      font-size: 0.72rem;
+      opacity: 0.82;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .empty {
+      grid-column: 1 / -1;
+      padding: 48px 12px 24px;
+      text-align: center;
+      color: var(--muted);
+    }
+    .empty strong {
+      display: block;
+      color: var(--ink);
+      font-size: 1.15rem;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    .composer {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      padding: 10px 12px calc(12px + var(--safe-b));
+      background: color-mix(in srgb, var(--bar) 92%, transparent);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-top: 1px solid var(--bar-border);
+    }
+    .preview {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      padding: 0 6px 8px;
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+    .preview.show { display: flex; }
+    .preview input {
+      flex: 1;
+      min-width: 0;
+      border: 0;
+      background: transparent;
+      color: var(--ink);
+      font: inherit;
+      font-weight: 600;
+      font-size: 0.95rem;
+      padding: 0;
+      outline: none;
+    }
+    .row {
+      display: flex;
+      align-items: flex-end;
+      gap: 8px;
+    }
+    textarea#draft {
+      flex: 1;
+      min-width: 0;
+      resize: none;
+      border: 1px solid var(--line);
+      background: var(--bar);
+      color: var(--ink);
+      border-radius: 16px;
+      padding: 11px 14px;
+      font: inherit;
+      font-size: 1rem;
+      line-height: 1.4;
+      max-height: 7.2em;
+      outline: none;
+      box-shadow: var(--shadow);
+    }
+    textarea#draft:focus { border-color: color-mix(in srgb, var(--ink) 28%, var(--line)); }
+    .icon-btn, .save {
+      appearance: none;
+      border: 0;
+      height: 44px;
+      border-radius: 14px;
+      font: inherit;
+      cursor: pointer;
+    }
+    .icon-btn {
+      width: 44px;
+      flex: 0 0 44px;
+      background: var(--bar);
+      color: var(--ink);
+      border: 1px solid var(--line);
+      font-size: 1.15rem;
+    }
+    .icon-btn.live {
+      background: #9a2f2f;
+      color: #fffaf3;
+      border-color: #9a2f2f;
+    }
+    .icon-btn[hidden] { display: none; }
+    .save {
+      padding: 0 16px;
+      background: var(--ink);
+      color: var(--paper);
+      font-weight: 600;
+    }
+    .save:disabled { opacity: 0.4; }
+    .sheet-bg {
+      position: fixed;
+      inset: 0;
+      background: rgba(20, 16, 12, 0.42);
+      display: none;
+      z-index: 20;
+    }
+    .sheet-bg.open { display: block; }
+    .sheet {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 21;
+      background: var(--bar);
+      color: var(--ink);
+      border-radius: 22px 22px 0 0;
+      padding: 10px 20px calc(20px + var(--safe-b));
+      transform: translateY(110%);
+      transition: transform 0.28s ease;
+      max-height: 88vh;
+      overflow: auto;
+    }
+    .sheet.open { transform: translateY(0); }
+    .grab {
+      width: 40px;
+      height: 4px;
+      border-radius: 4px;
+      background: var(--line);
+      margin: 6px auto 16px;
+    }
+    .sheet .swatch {
+      width: 100%;
+      border: 0;
+      border-radius: 18px;
+      min-height: 92px;
+      color: #fffaf3;
+      font: inherit;
+      font-size: 1.6rem;
+      font-weight: 650;
+      letter-spacing: 0.03em;
+      padding: 18px;
+      margin-bottom: 14px;
+      text-align: left;
+    }
+    .sheet label {
+      display: block;
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin: 12px 0 6px;
+    }
+    .sheet textarea, .sheet input[type="text"] {
+      width: 100%;
+      border: 1px solid var(--line);
+      background: var(--paper);
+      color: var(--ink);
+      border-radius: 12px;
+      font: inherit;
+      padding: 10px 12px;
+      outline: none;
+    }
+    .sheet textarea { min-height: 88px; resize: vertical; }
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 18px;
+    }
+    .actions button {
+      appearance: none;
+      border: 1px solid var(--line);
+      background: var(--paper);
+      color: var(--ink);
+      font: inherit;
+      border-radius: 12px;
+      padding: 10px 14px;
+      cursor: pointer;
+    }
+    .actions .primary {
+      background: var(--ink);
+      color: var(--paper);
+      border-color: var(--ink);
+      font-weight: 600;
+    }
+    .actions .danger {
+      color: #9a2f2f;
+      margin-left: auto;
+    }
+    .menu {
+      position: fixed;
+      inset: 0;
+      z-index: 22;
+      display: none;
+      background: rgba(20, 16, 12, 0.42);
+    }
+    .menu.open { display: block; }
+    .menu-card {
+      position: absolute;
+      right: 16px;
+      top: calc(var(--safe-t) + 52px);
+      background: var(--bar);
+      border-radius: 16px;
+      padding: 8px;
+      min-width: 200px;
+      box-shadow: var(--shadow);
+    }
+    .menu-card button, .menu-card label.file {
+      display: block;
+      width: 100%;
+      text-align: left;
+      appearance: none;
+      border: 0;
+      background: transparent;
+      color: var(--ink);
+      font: inherit;
+      padding: 11px 12px;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+    .hint {
+      color: var(--muted);
+      font-size: 0.78rem;
+      padding: 8px 12px 10px;
+      line-height: 1.45;
+    }
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(8px) scale(0.98); }
+      to { opacity: 1; transform: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="appbar">
+    <div>
+      <h1>一眼墙</h1>
+    </div>
+    <button class="menu-btn" id="menuBtn" type="button">更多</button>
+  </header>
+  <main>
+    <div class="wall" id="wall"></div>
+  </main>
+
+  <div class="composer">
+    <div class="preview" id="preview">
+      <span>将显示为</span>
+      <input id="tagDraft" maxlength="16" aria-label="提炼后的标签">
+    </div>
+    <div class="row">
+      <button class="icon-btn" id="mic" type="button" aria-label="语音记录" hidden>
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="9" y="3.5" width="6" height="10" rx="3"></rect>
+          <path d="M6.5 11.5a5.5 5.5 0 0 0 11 0"></path>
+          <path d="M12 17v3.5"></path>
+        </svg>
+      </button>
+      <textarea id="draft" rows="1" placeholder="说一句，或打一行" enterkeyhint="done"></textarea>
+      <button class="save" id="save" type="button" disabled>记下</button>
+    </div>
+  </div>
+
+  <div class="sheet-bg" id="sheetBg"></div>
+  <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTag">
+    <div class="grab"></div>
+    <input class="swatch" id="sheetTag" maxlength="16" aria-label="标签">
+    <label for="sheetRaw">原话</label>
+    <textarea id="sheetRaw"></textarea>
+    <div id="sheetWhen" class="hint" style="padding-left:0"></div>
+    <div class="actions">
+      <button type="button" class="primary" id="sheetSave">保存</button>
+      <button type="button" id="sheetPin">置顶</button>
+      <button type="button" class="danger" id="sheetDel">删除</button>
+    </div>
+  </div>
+
+  <div class="menu" id="menu">
+    <div class="menu-card">
+      <button type="button" id="exportBtn">导出备份</button>
+      <label class="file">导入备份
+        <input id="importFile" type="file" accept="application/json,.json" hidden>
+      </label>
+      <p class="hint">iPhone 用 Safari 打开后，点底部分享，再选「添加到主屏幕」。记录保存在这台手机里。</p>
+    </div>
+  </div>
+
+  <script>
+    const KEY = "yiyanqiang.v1";
+    const PALETTE = [
+      "#C45C26", "#2F5D50", "#3D4F7C", "#B33B5A",
+      "#C9A227", "#5B4B8A", "#3E6B48", "#A65D4E",
+      "#2A6F7F", "#6B4F3A"
+    ];
+    const DARK_TEXT = new Set(["#C9A227"]);
+
+    const wall = document.getElementById("wall");
+    const draft = document.getElementById("draft");
+    const tagDraft = document.getElementById("tagDraft");
+    const preview = document.getElementById("preview");
+    const saveBtn = document.getElementById("save");
+    const micBtn = document.getElementById("mic");
+    const sheet = document.getElementById("sheet");
+    const sheetBg = document.getElementById("sheetBg");
+    const sheetTag = document.getElementById("sheetTag");
+    const sheetRaw = document.getElementById("sheetRaw");
+    const sheetWhen = document.getElementById("sheetWhen");
+    const sheetPin = document.getElementById("sheetPin");
+    const menu = document.getElementById("menu");
+
+    let notes = load();
+    let openId = null;
+    let tagTouched = false;
+    let rec = null;
+    let listening = false;
+
+    function load() {
+      try {
+        const raw = localStorage.getItem(KEY);
+        const data = raw ? JSON.parse(raw) : [];
+        return Array.isArray(data) ? data : [];
+      } catch {
+        return [];
+      }
+    }
+    function persist() {
+      localStorage.setItem(KEY, JSON.stringify(notes));
+    }
+    function uid() {
+      return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+    }
+    function refine(text) {
+      let t = String(text || "").trim();
+      t = t.replace(/^(我想记录|提醒自己|我觉得|我感觉|就是说|就是|然后呢|然后|看到一句|今天看到|抖音上|书上说|提醒我)[的了着]*/g, "");
+      t = t.replace(/^[，,。、：:\s]+/, "").trim();
+      const sentence = (t.split(/[。！？!?\n]/)[0] || t).trim();
+      const s = sentence || t;
+      if (s.length <= 10) return s;
+      const comma = s.split(/[，,、]/)[0].trim();
+      if (comma.length >= 2 && comma.length <= 10) return comma;
+      return s.slice(0, 8);
+    }
+    function colorFor(id) {
+      let h = 0;
+      for (let i = 0; i < id.length; i++) h = (h * 33 + id.charCodeAt(i)) >>> 0;
+      return PALETTE[h % PALETTE.length];
+    }
+    function relative(ts) {
+      const then = new Date(ts);
+      const now = new Date();
+      const startNow = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const startThen = new Date(then.getFullYear(), then.getMonth(), then.getDate());
+      const days = Math.round((startNow - startThen) / 86400000);
+      if (days <= 0) return "今天";
+      if (days === 1) return "昨天";
+      if (days < 30) return days + "天前";
+      const months = Math.max(1, Math.round(days / 30));
+      return months + "个月前";
+    }
+    function sorted() {
+      return notes.slice().sort((a, b) => {
+        if (!!b.pinned !== !!a.pinned) return a.pinned ? -1 : 1;
+        return b.createdAt - a.createdAt;
+      });
+    }
+    function render() {
+      const list = sorted();
+      const countEl = document.querySelector("header .count");
+      if (countEl) countEl.remove();
+      if (notes.length) {
+        const c = document.createElement("div");
+        c.className = "count";
+        c.textContent = notes.length + " 句";
+        document.querySelector("header > div").appendChild(c);
+      }
+      wall.innerHTML = "";
+      if (!list.length) {
+        const empty = document.createElement("div");
+        empty.className = "empty";
+        empty.innerHTML = "<strong>打开就能看见重点</strong>先记下第一句，它会变成墙上的一块色块。";
+        wall.appendChild(empty);
+        return;
+      }
+      const firstPinned = list.find((n) => n.pinned);
+      list.forEach((n) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "tile" + (firstPinned && n.id === firstPinned.id ? " hero" : "");
+        const bg = n.color || colorFor(n.id);
+        btn.style.background = bg;
+        if (DARK_TEXT.has(bg)) btn.style.color = "#1a1714";
+        const tag = document.createElement("div");
+        tag.className = "tag";
+        tag.textContent = n.tag;
+        const meta = document.createElement("div");
+        meta.className = "meta";
+        meta.textContent = (n.pinned ? "置顶 · " : "") + relative(n.createdAt);
+        btn.appendChild(tag);
+        btn.appendChild(meta);
+        btn.addEventListener("click", () => openSheet(n.id));
+        wall.appendChild(btn);
+      });
+    }
+    function updatePreview() {
+      const text = draft.value.trim();
+      saveBtn.disabled = !text;
+      if (!text) {
+        preview.classList.remove("show");
+        tagTouched = false;
+        tagDraft.value = "";
+        return;
+      }
+      preview.classList.add("show");
+      if (!tagTouched) tagDraft.value = refine(text);
+    }
+    function addNote() {
+      const raw = draft.value.trim();
+      if (!raw) return;
+      const tag = (tagDraft.value.trim() || refine(raw)).slice(0, 16);
+      const id = uid();
+      notes.push({
+        id,
+        raw,
+        tag,
+        color: colorFor(id),
+        createdAt: Date.now(),
+        pinned: false
+      });
+      persist();
+      draft.value = "";
+      tagTouched = false;
+      updatePreview();
+      autosize();
+      render();
+    }
+    function openSheet(id) {
+      const n = notes.find((x) => x.id === id);
+      if (!n) return;
+      openId = id;
+      sheetTag.value = n.tag;
+      sheetTag.style.background = n.color || colorFor(n.id);
+      sheetTag.style.color = DARK_TEXT.has(n.color || colorFor(n.id)) ? "#1a1714" : "#fffaf3";
+      sheetRaw.value = n.raw;
+      const d = new Date(n.createdAt);
+      sheetWhen.textContent = "记于 " + d.getFullYear() + "年" + (d.getMonth() + 1) + "月" + d.getDate() + "日 · " + relative(n.createdAt);
+      sheetPin.textContent = n.pinned ? "取消置顶" : "置顶";
+      sheet.classList.add("open");
+      sheetBg.classList.add("open");
+    }
+    function closeSheet() {
+      sheet.classList.remove("open");
+      sheetBg.classList.remove("open");
+      openId = null;
+    }
+    function current() {
+      return notes.find((x) => x.id === openId);
+    }
+    function autosize() {
+      draft.style.height = "auto";
+      draft.style.height = Math.min(draft.scrollHeight, 120) + "px";
+    }
+
+    draft.addEventListener("input", () => { updatePreview(); autosize(); });
+    tagDraft.addEventListener("input", () => { tagTouched = true; });
+    saveBtn.addEventListener("click", addNote);
+    draft.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        addNote();
+      }
+    });
+    document.getElementById("sheetSave").addEventListener("click", () => {
+      const n = current();
+      if (!n) return;
+      n.tag = sheetTag.value.trim().slice(0, 16) || n.tag;
+      n.raw = sheetRaw.value.trim() || n.raw;
+      persist();
+      render();
+      closeSheet();
+    });
+    sheetPin.addEventListener("click", () => {
+      const n = current();
+      if (!n) return;
+      n.pinned = !n.pinned;
+      persist();
+      render();
+      sheetPin.textContent = n.pinned ? "取消置顶" : "置顶";
+    });
+    document.getElementById("sheetDel").addEventListener("click", () => {
+      if (!openId) return;
+      notes = notes.filter((x) => x.id !== openId);
+      persist();
+      render();
+      closeSheet();
+    });
+    sheetBg.addEventListener("click", closeSheet);
+    document.getElementById("menuBtn").addEventListener("click", () => menu.classList.add("open"));
+    menu.addEventListener("click", (e) => {
+      if (e.target === menu) menu.classList.remove("open");
+    });
+    document.getElementById("exportBtn").addEventListener("click", () => {
+      const blob = new Blob([JSON.stringify(notes, null, 2)], { type: "application/json" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "一眼墙-备份.json";
+      a.click();
+      URL.revokeObjectURL(a.href);
+      menu.classList.remove("open");
+    });
+    document.getElementById("importFile").addEventListener("change", (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const data = JSON.parse(String(reader.result || "[]"));
+          if (!Array.isArray(data)) return;
+          const map = new Map(notes.map((n) => [n.id, n]));
+          data.forEach((n) => {
+            if (n && n.id && n.tag) map.set(n.id, n);
+          });
+          notes = Array.from(map.values());
+          persist();
+          render();
+        } catch {}
+        menu.classList.remove("open");
+        e.target.value = "";
+      };
+      reader.readAsText(file);
+    });
+
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SR) {
+      micBtn.hidden = false;
+      rec = new SR();
+      rec.lang = "zh-CN";
+      rec.continuous = false;
+      rec.interimResults = true;
+      rec.onresult = (ev) => {
+        let text = "";
+        for (let i = 0; i < ev.results.length; i++) text += ev.results[i][0].transcript;
+        draft.value = text;
+        updatePreview();
+        autosize();
+      };
+      rec.onend = () => {
+        listening = false;
+        micBtn.classList.remove("live");
+        micBtn.setAttribute("aria-label", "语音记录");
+      };
+      rec.onerror = () => {
+        listening = false;
+        micBtn.classList.remove("live");
+      };
+      micBtn.addEventListener("click", () => {
+        if (!rec) return;
+        if (listening) {
+          rec.stop();
+          return;
+        }
+        listening = true;
+        micBtn.classList.add("live");
+        micBtn.setAttribute("aria-label", "停止录音");
+        try { rec.start(); } catch {
+          listening = false;
+          micBtn.classList.remove("live");
+        }
+      });
+    }
+
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("./sw.js").catch(() => {});
+    }
+    render();
+  </script>
+</body>
+</html>
