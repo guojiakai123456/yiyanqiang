@@ -1,4 +1,4 @@
-const CACHE = "yiyanqiang-v2";
+const CACHE = "yiyanqiang-v3";
 const ASSETS = [
   "./",
   "./index.html",

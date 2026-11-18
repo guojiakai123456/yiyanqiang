@@ -355,7 +355,7 @@
   <div class="composer">
     <div class="preview" id="preview">
       <span>将显示为</span>
-      <input id="tagDraft" maxlength="16" aria-label="提炼后的标签">
+      <input id="tagDraft" maxlength="30" aria-label="墙上显示的文字">
     </div>
     <div class="row">
       <button class="icon-btn" id="mic" type="button" aria-label="语音记录" hidden>
@@ -373,7 +373,7 @@
   <div class="sheet-bg" id="sheetBg"></div>
   <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTag">
     <div class="grab"></div>
-    <input class="swatch" id="sheetTag" maxlength="16" aria-label="标签">
+    <input class="swatch" id="sheetTag" maxlength="30" aria-label="标签">
     <label for="sheetRaw">原话</label>
     <textarea id="sheetRaw"></textarea>
     <div id="sheetWhen" class="hint" style="padding-left:0"></div>
@@ -438,87 +438,11 @@
     function uid() {
       return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
     }
-    function refine(text) {
-      let t = String(text || "").trim();
-      if (!t) return "";
-
-      const LEAD = /^(我想记录|我想说|我想提醒自己|提醒自己|提醒我|我觉得|我感觉|我就是想|就是想告诉自己|就是想|就是说|其实就是|其实|就是|然后呢|然后|我今天刷到一句说|今天刷到一句说|刷到一句说|刷到一句|今天读到十几个字|今天读到|读到一句|看到一句|今天看到|抖音上看到一句|抖音上|书上说|书里说|有句话说|一句话说|别人说|有人说|告诉自己|记一下|记下|说白了|说到底)[的了着吧啊]?/;
-      for (let i = 0; i < 5; i++) {
-        let n = t.replace(LEAD, "");
-        n = n.replace(/^(一下|一句)/, "");
-        n = n.replace(/^[，,。、：:\s“”"'']+/, "").trim();
-        if (n === t) break;
-        t = n;
-      }
-
-      if (/[：:]/.test(t)) {
-        const parts = t.split(/[：:]/);
-        const after = parts.slice(1).join("：").trim();
-        if (after.length >= 2) t = after;
-      }
-
-      const sentences = t.split(/[。！？!?\n]+/).map((s) => s.trim()).filter(Boolean);
-      let s = sentences[0] || t;
-      if (sentences.length > 1 && s.length <= 3) s = sentences[1];
-
-      const CUE = /^(千万不要|千万别|一定不要|一定要|不要再|不要|别再|别|要学会|必须要|必须|记住|记得|别忘了|别忘|要去|要)/;
-      function clausesOf(str) {
-        return str.split(/[，,、；;]+/).map((c) => c.trim()).filter(Boolean);
-      }
-      function cueStart(str) {
-        const m = String(str).match(/(千万不要|千万别|一定不要|一定要|不要再|不要|别再|别(?!人)|要学会|必须要|必须|记住|记得|别忘了|别忘|要(?!是|不然|么|不|点))[^。！？!?\n]*/);
-        return m ? m[0].trim() : "";
-      }
-
-      let out = "";
-      const allClauses = sentences.flatMap(clausesOf);
-      const cuedClauses = allClauses.filter((c) => CUE.test(c) && c.replace(CUE, "").replace(/[的了着啊吧呢呀]+$/g, "").length >= 1);
-      if (cuedClauses.length) {
-        out = cuedClauses[0];
-      } else {
-        out = cueStart(t) || allClauses[allClauses.length - 1] || s;
-      }
-
-      out = out.replace(/^(你都|我们都|大家都|你也|我也|都)?(千万不要|千万别|一定不要|不要|别)因为(.+?)(而|就)(.+)$/, (_, _w, cue, _x, _j, y) => cue + y);
-      out = out.replace(/^(千万不要|一定不要|不要|别)为了.+?而(.+)$/, "$1$2");
-      out = out.replace(/^(千万|一定|其实是|其实|真的是|真的)/, "");
-      out = out.replace(/^(做人|做事|生活中|以后|从今以后)(一定)?/, "");
-      out = out.replace(/^(你都|我们都|大家都|你也|我也|你)(要|不要|别)/, "$2");
-      out = out.replace(/的时候(?=要|不要|别)/, "");
-      out = out.replace(/^(不要)再/, "$1");
-      out = out.replace(/(才是)?最重要的$/, "");
-      out = out.replace(/(就很好|就对了|就可以了|就可以|就好了|就好|就行了|就行)$/g, "");
-      out = out.replace(/(一点|一些|一下)$/g, "");
-      out = out.replace(/[的了着呢啊呀哦嘛吧啦咯]+$/g, "");
-      out = out.replace(/^(要)更/, "$1");
-      out = out.replace(/^(要)学会/, "$1");
-      out = out.replace(/^(先把.{1,10}?)(做好|做完)$/, "先$2");
-      out = out.replace(/^(遇到事情)?(先[一-龥]{2,4})下来.*$/, "$2");
-      out = out.replace(/[，,。、；;]/g, "");
-      out = out.trim();
-      if (!out) out = (cuedClauses[0] || s).trim();
-
-      out = out.replace(/^(不要|别)把.{1,8}?([一-龥]{2})(在|到|给|到了).*$/, "$1$2");
-      out = out.replace(/^(要)把.{1,8}?([一-龥]{2})(在|到|给).*$/, "$1$2");
-      out = out.replace(/^(不要|别)(对|为|因为).{1,8}?(感到|觉得)(.+)$/, "$1$4");
-
-      const MAX = 8;
-      if (out.length <= MAX) return out || t.slice(0, MAX);
-
-      const prefix = (out.match(/^(千万不要|不要|别再|别|一定要|必须|记住|记得|要|先)/) || [""])[0];
-      let rest = out.slice(prefix.length).replace(/^(把|将|对|跟|和|给|向|被|让|的)/, "");
-      rest = rest.replace(/的时候/g, "");
-      const compact = prefix + rest;
-      if (compact.length <= MAX) return compact;
-
-      const verb = rest.match(/^(.{0,4}?)([一-龥]{2})(在|到|给|的|自己|下去|$)/);
-      if (prefix && verb && verb[2]) {
-        const cand = prefix + verb[2];
-        if (cand.length <= MAX) return cand;
-      }
-
-      const budget = Math.max(2, MAX - prefix.length);
-      return (prefix + rest.slice(0, budget)).slice(0, MAX);
+    const WALL_MAX = 30;
+    function wallText(text) {
+      const t = String(text || "").trim();
+      if (t.length <= WALL_MAX) return t;
+      return t.slice(0, WALL_MAX);
     }
     function colorFor(id) {
       let h = 0;
@@ -591,12 +515,12 @@
         return;
       }
       preview.classList.add("show");
-      if (!tagTouched) tagDraft.value = refine(text);
+      if (!tagTouched) tagDraft.value = wallText(text);
     }
     function addNote() {
       const raw = draft.value.trim();
       if (!raw) return;
-      const tag = (tagDraft.value.trim() || refine(raw)).slice(0, 16);
+      const tag = (tagDraft.value.trim() || wallText(raw)).slice(0, WALL_MAX);
       const id = uid();
       notes.push({
         id,
@@ -652,7 +576,7 @@
     document.getElementById("sheetSave").addEventListener("click", () => {
       const n = current();
       if (!n) return;
-      n.tag = sheetTag.value.trim().slice(0, 16) || n.tag;
+      n.tag = sheetTag.value.trim().slice(0, WALL_MAX) || n.tag;
       n.raw = sheetRaw.value.trim() || n.raw;
       persist();
       render();
