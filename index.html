@@ -388,9 +388,9 @@
     <div class="menu-card">
       <button type="button" id="exportBtn">导出备份</button>
       <label class="file">导入备份
-        <input id="importFile" type="file" accept="application/json,.json" hidden>
+        <input id="importFile" type="file" accept="text/plain,.txt,.text,application/json,.json,text/markdown,.md" hidden>
       </label>
-      <p class="hint">iPhone 用 Safari 打开后，点底部分享，再选「添加到主屏幕」。记录保存在这台手机里。</p>
+      <p class="hint">导出备份是一份普通文本，可在「备忘录」里直接打开。分享时选「备忘录」即可保存。iPhone 用 Safari 打开后，点底部分享，再选「添加到主屏幕」。记录保存在这台手机里。</p>
     </div>
   </div>
 
@@ -440,14 +440,85 @@
     }
     function refine(text) {
       let t = String(text || "").trim();
-      t = t.replace(/^(我想记录|提醒自己|我觉得|我感觉|就是说|就是|然后呢|然后|看到一句|今天看到|抖音上|书上说|提醒我)[的了着]*/g, "");
-      t = t.replace(/^[，,。、：:\s]+/, "").trim();
-      const sentence = (t.split(/[。！？!?\n]/)[0] || t).trim();
-      const s = sentence || t;
-      if (s.length <= 10) return s;
-      const comma = s.split(/[，,、]/)[0].trim();
-      if (comma.length >= 2 && comma.length <= 10) return comma;
-      return s.slice(0, 8);
+      if (!t) return "";
+
+      const LEAD = /^(我想记录|我想说|我想提醒自己|提醒自己|提醒我|我觉得|我感觉|我就是想|就是想告诉自己|就是想|就是说|其实就是|其实|就是|然后呢|然后|我今天刷到一句说|今天刷到一句说|刷到一句说|刷到一句|今天读到十几个字|今天读到|读到一句|看到一句|今天看到|抖音上看到一句|抖音上|书上说|书里说|有句话说|一句话说|别人说|有人说|告诉自己|记一下|记下|说白了|说到底)[的了着吧啊]?/;
+      for (let i = 0; i < 5; i++) {
+        let n = t.replace(LEAD, "");
+        n = n.replace(/^(一下|一句)/, "");
+        n = n.replace(/^[，,。、：:\s“”"'']+/, "").trim();
+        if (n === t) break;
+        t = n;
+      }
+
+      if (/[：:]/.test(t)) {
+        const parts = t.split(/[：:]/);
+        const after = parts.slice(1).join("：").trim();
+        if (after.length >= 2) t = after;
+      }
+
+      const sentences = t.split(/[。！？!?\n]+/).map((s) => s.trim()).filter(Boolean);
+      let s = sentences[0] || t;
+      if (sentences.length > 1 && s.length <= 3) s = sentences[1];
+
+      const CUE = /^(千万不要|千万别|一定不要|一定要|不要再|不要|别再|别|要学会|必须要|必须|记住|记得|别忘了|别忘|要去|要)/;
+      function clausesOf(str) {
+        return str.split(/[，,、；;]+/).map((c) => c.trim()).filter(Boolean);
+      }
+      function cueStart(str) {
+        const m = String(str).match(/(千万不要|千万别|一定不要|一定要|不要再|不要|别再|别(?!人)|要学会|必须要|必须|记住|记得|别忘了|别忘|要(?!是|不然|么|不|点))[^。！？!?\n]*/);
+        return m ? m[0].trim() : "";
+      }
+
+      let out = "";
+      const allClauses = sentences.flatMap(clausesOf);
+      const cuedClauses = allClauses.filter((c) => CUE.test(c) && c.replace(CUE, "").replace(/[的了着啊吧呢呀]+$/g, "").length >= 1);
+      if (cuedClauses.length) {
+        out = cuedClauses[0];
+      } else {
+        out = cueStart(t) || allClauses[allClauses.length - 1] || s;
+      }
+
+      out = out.replace(/^(你都|我们都|大家都|你也|我也|都)?(千万不要|千万别|一定不要|不要|别)因为(.+?)(而|就)(.+)$/, (_, _w, cue, _x, _j, y) => cue + y);
+      out = out.replace(/^(千万不要|一定不要|不要|别)为了.+?而(.+)$/, "$1$2");
+      out = out.replace(/^(千万|一定|其实是|其实|真的是|真的)/, "");
+      out = out.replace(/^(做人|做事|生活中|以后|从今以后)(一定)?/, "");
+      out = out.replace(/^(你都|我们都|大家都|你也|我也|你)(要|不要|别)/, "$2");
+      out = out.replace(/的时候(?=要|不要|别)/, "");
+      out = out.replace(/^(不要)再/, "$1");
+      out = out.replace(/(才是)?最重要的$/, "");
+      out = out.replace(/(就很好|就对了|就可以了|就可以|就好了|就好|就行了|就行)$/g, "");
+      out = out.replace(/(一点|一些|一下)$/g, "");
+      out = out.replace(/[的了着呢啊呀哦嘛吧啦咯]+$/g, "");
+      out = out.replace(/^(要)更/, "$1");
+      out = out.replace(/^(要)学会/, "$1");
+      out = out.replace(/^(先把.{1,10}?)(做好|做完)$/, "先$2");
+      out = out.replace(/^(遇到事情)?(先[一-龥]{2,4})下来.*$/, "$2");
+      out = out.replace(/[，,。、；;]/g, "");
+      out = out.trim();
+      if (!out) out = (cuedClauses[0] || s).trim();
+
+      out = out.replace(/^(不要|别)把.{1,8}?([一-龥]{2})(在|到|给|到了).*$/, "$1$2");
+      out = out.replace(/^(要)把.{1,8}?([一-龥]{2})(在|到|给).*$/, "$1$2");
+      out = out.replace(/^(不要|别)(对|为|因为).{1,8}?(感到|觉得)(.+)$/, "$1$4");
+
+      const MAX = 8;
+      if (out.length <= MAX) return out || t.slice(0, MAX);
+
+      const prefix = (out.match(/^(千万不要|不要|别再|别|一定要|必须|记住|记得|要|先)/) || [""])[0];
+      let rest = out.slice(prefix.length).replace(/^(把|将|对|跟|和|给|向|被|让|的)/, "");
+      rest = rest.replace(/的时候/g, "");
+      const compact = prefix + rest;
+      if (compact.length <= MAX) return compact;
+
+      const verb = rest.match(/^(.{0,4}?)([一-龥]{2})(在|到|给|的|自己|下去|$)/);
+      if (prefix && verb && verb[2]) {
+        const cand = prefix + verb[2];
+        if (cand.length <= MAX) return cand;
+      }
+
+      const budget = Math.max(2, MAX - prefix.length);
+      return (prefix + rest.slice(0, budget)).slice(0, MAX);
     }
     function colorFor(id) {
       let h = 0;
@@ -607,14 +678,131 @@
     menu.addEventListener("click", (e) => {
       if (e.target === menu) menu.classList.remove("open");
     });
-    document.getElementById("exportBtn").addEventListener("click", () => {
-      const blob = new Blob([JSON.stringify(notes, null, 2)], { type: "application/json" });
+    function pad2(n) {
+      return String(n).padStart(2, "0");
+    }
+    function shanghaiParts(ts) {
+      const parts = new Intl.DateTimeFormat("en-GB", {
+        timeZone: "Asia/Shanghai",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        hourCycle: "h23"
+      }).formatToParts(new Date(ts));
+      const get = (type) => parts.find((p) => p.type === type).value;
+      return {
+        year: get("year"),
+        month: get("month"),
+        day: get("day"),
+        hour: get("hour"),
+        minute: get("minute")
+      };
+    }
+    function formatStamp(ts) {
+      const p = shanghaiParts(ts);
+      return p.year + "-" + p.month + "-" + p.day + " " + p.hour + ":" + p.minute;
+    }
+    function formatBackup(list) {
+      const lines = ["一眼墙备份", "导出时间：" + formatStamp(Date.now()) + "（北京时间）", ""];
+      const items = list.slice().sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+      items.forEach((n, i) => {
+        if (i) lines.push("");
+        lines.push("【" + (n.tag || "") + "】");
+        if (n.createdAt) lines.push("时间：" + formatStamp(n.createdAt) + "（北京时间）");
+        if (n.pinned) lines.push("置顶：是");
+        lines.push("原文：" + String(n.raw || n.tag || "").trim());
+      });
+      if (!items.length) lines.push("（还没有记录）");
+      return lines.join("\n") + "\n";
+    }
+    function parseStamp(s) {
+      const m = String(s || "").match(/(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})/);
+      if (!m) return Date.now();
+      return new Date(m[1] + "-" + m[2] + "-" + m[3] + "T" + m[4] + ":" + m[5] + ":00+08:00").getTime();
+    }
+    function parseTextBackup(text) {
+      const blocks = String(text || "").split(/\n(?=【)/);
+      const out = [];
+      blocks.forEach((block) => {
+        const tm = block.match(/【([^】]+)】/);
+        if (!tm) return;
+        const tag = tm[1].trim();
+        if (!tag) return;
+        const timeM = block.match(/时间：([^\n]+)/);
+        const rawM = block.match(/原文：([\s\S]*?)(?=\n【|$)/);
+        let raw = rawM ? rawM[1].trim() : "";
+        raw = raw.replace(/\n置顶：.*$/, "").trim();
+        out.push({
+          id: uid(),
+          tag,
+          raw: raw || tag,
+          createdAt: parseStamp(timeM && timeM[1]),
+          pinned: /置顶：是/.test(block),
+          color: null
+        });
+      });
+      return out;
+    }
+    function parseBackup(text) {
+      const raw = String(text || "").trim();
+      if (!raw) return [];
+      if (raw.startsWith("[") || raw.startsWith("{")) {
+        const data = JSON.parse(raw);
+        const list = Array.isArray(data) ? data : (Array.isArray(data.notes) ? data.notes : []);
+        return list.filter((n) => n && n.tag);
+      }
+      return parseTextBackup(raw);
+    }
+    function mergeImported(list) {
+      const map = new Map(notes.map((n) => [n.id, n]));
+      const seen = new Set(notes.map((n) => (n.tag || "") + "\0" + (n.raw || "") + "\0" + String(n.createdAt || "")));
+      list.forEach((n) => {
+        if (!n || !n.tag) return;
+        if (n.id && map.has(n.id)) {
+          const merged = Object.assign({}, map.get(n.id), n);
+          map.set(n.id, merged);
+          return;
+        }
+        const key = (n.tag || "") + "\0" + (n.raw || "") + "\0" + String(n.createdAt || "");
+        if (seen.has(key)) return;
+        if (!n.id) n.id = uid();
+        if (!n.color) n.color = colorFor(n.id);
+        map.set(n.id, n);
+        seen.add(key);
+      });
+      notes = Array.from(map.values());
+      persist();
+      render();
+    }
+    function downloadText(filename, text) {
+      const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
-      a.download = "一眼墙-备份.json";
+      a.download = filename;
       a.click();
       URL.revokeObjectURL(a.href);
+    }
+    document.getElementById("exportBtn").addEventListener("click", async () => {
+      const text = formatBackup(notes);
+      const stamp = formatStamp(Date.now()).replace(/[ :]/g, "-");
+      const filename = "一眼墙-备份-" + stamp + ".txt";
+      const file = new File([text], filename, { type: "text/plain" });
       menu.classList.remove("open");
+      try {
+        if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+          await navigator.share({ files: [file], title: "一眼墙备份" });
+          return;
+        }
+        if (navigator.share) {
+          await navigator.share({ title: "一眼墙备份", text: text });
+          return;
+        }
+      } catch (err) {
+        if (err && err.name === "AbortError") return;
+      }
+      downloadText(filename, text);
     });
     document.getElementById("importFile").addEventListener("change", (e) => {
       const file = e.target.files && e.target.files[0];
@@ -622,15 +810,8 @@
       const reader = new FileReader();
       reader.onload = () => {
         try {
-          const data = JSON.parse(String(reader.result || "[]"));
-          if (!Array.isArray(data)) return;
-          const map = new Map(notes.map((n) => [n.id, n]));
-          data.forEach((n) => {
-            if (n && n.id && n.tag) map.set(n.id, n);
-          });
-          notes = Array.from(map.values());
-          persist();
-          render();
+          const data = parseBackup(String(reader.result || ""));
+          if (data.length) mergeImported(data);
         } catch {}
         menu.classList.remove("open");
         e.target.value = "";
