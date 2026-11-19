@@ -11,8 +11,9 @@
   <meta name="description" content="打开就看见重点。开口或打字记下，提炼成色块。">
   <title>一眼墙</title>
   <link rel="manifest" href="./manifest.webmanifest">
-  <link rel="apple-touch-icon" href="./icon-180.png">
-  <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
+  <link rel="apple-touch-icon" href="./qiangshi-180.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="./qiangshi-192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="./qiangshi-512.png">
   <style>
     :root {
       --paper: #f3eee6;
@@ -75,15 +76,10 @@
       color: var(--ink);
     }
     .logo-mark {
-      width: 68px;
-      height: 26px;
+      width: 112px;
+      height: 112px;
       display: block;
-    }
-    .logo-word {
-      font-size: 0.98rem;
-      font-weight: 700;
-      letter-spacing: 0.22em;
-      line-height: 1;
+      object-fit: contain;
     }
     header .count {
       color: var(--muted);
@@ -420,7 +416,7 @@
     .menu-card {
       position: absolute;
       right: 16px;
-      top: calc(var(--safe-t) + 96px);
+      top: calc(var(--safe-t) + 148px);
       background: var(--bar);
       border-radius: 16px;
       padding: 8px;
@@ -494,16 +490,7 @@
   <header class="appbar">
     <div>
       <h1>
-        <svg class="logo-mark" viewBox="0 0 88 34" aria-hidden="true">
-          <g fill="none" stroke="currentColor" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M13 13.5 L3.5 6"/>
-            <path d="M75 13.5 L84.5 6"/>
-            <path d="M36.5 18.2 H51.5"/>
-            <rect x="10" y="9" width="28" height="18" rx="8"/>
-            <rect x="50" y="9" width="28" height="18" rx="8"/>
-          </g>
-        </svg>
-        <span class="logo-word">强势文化</span>
+        <img class="logo-mark" src="./qiangshi-512.png" width="512" height="512" alt="强势文化">
       </h1>
     </div>
     <button class="menu-btn" id="menuBtn" type="button">更多</button>

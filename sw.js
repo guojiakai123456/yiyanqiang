@@ -1,11 +1,12 @@
-const CACHE = "yiyanqiang-v9";
+const CACHE = "yiyanqiang-v10";
 const ASSETS = [
   "./",
   "./index.html",
   "./manifest.webmanifest",
-  "./icon-180.png",
-  "./icon-192.png",
-  "./icon-512.png"
+  "./qiangshi-180.png",
+  "./qiangshi-192.png",
+  "./qiangshi-512.png",
+  "./qiangshi-1024.png"
 ];
 
 self.addEventListener("install", (event) => {
@@ -16,7 +17,7 @@ self.addEventListener("install", (event) => {
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))
+      Promise.all(keys.filter((k) => k.startsWith("yiyanqiang-") && k !== CACHE).map((k) => caches.delete(k)))
     )
   );
   self.clients.claim();
