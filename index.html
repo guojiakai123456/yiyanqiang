@@ -46,7 +46,16 @@
       font-family: "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", "Source Han Sans SC", "Microsoft YaHei", system-ui, sans-serif;
     }
     body {
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
       padding-top: var(--safe-t);
+    }
+    main {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
     }
     header.appbar {
       display: flex;
@@ -89,57 +98,106 @@
       padding: 6px 0;
     }
     .wall {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-      padding: 12px 16px calc(168px + var(--safe-b));
-    }
-    .tile {
-      appearance: none;
-      border: 0;
-      border-radius: 22px;
-      min-height: 134px;
-      padding: 18px 16px 14px;
+      flex: 1;
+      min-height: 0;
       display: flex;
       flex-direction: column;
+      gap: 6px;
+      padding: 6px 10px calc(176px + var(--safe-b));
+    }
+    .wall.listing {
+      display: block;
+      overflow: auto;
+    }
+    .band {
+      flex: 1;
+      min-height: 0;
+      border-radius: 16px;
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .band-head {
+      display: flex;
+      align-items: baseline;
       justify-content: space-between;
+      gap: 8px;
+      font-weight: 700;
+      font-size: 0.92rem;
+      letter-spacing: 0.04em;
+    }
+    .band-head button, .list-back {
+      appearance: none;
+      border: 0;
+      background: transparent;
+      color: inherit;
+      font: inherit;
+      font-weight: 700;
+      padding: 0;
+      cursor: pointer;
+    }
+    .band-more {
+      font-size: 0.75rem;
+      font-weight: 600;
+      opacity: 0.88;
+    }
+    .band-row {
+      flex: 1;
+      min-height: 0;
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 5px;
+    }
+    .tile {
+      position: relative;
+      appearance: none;
+      border: 0;
+      border-radius: 10px;
+      min-width: 0;
+      min-height: 0;
+      padding: 4px 5px;
+      display: flex;
       align-items: flex-start;
       text-align: left;
-      color: #fffaf3;
       cursor: pointer;
-      animation: rise 0.38s ease both;
-    }
-    .tile.hero {
-      grid-column: 1 / -1;
-      min-height: 116px;
     }
     .tile .tag {
-      font-size: 1.38rem;
-      font-weight: 600;
-      line-height: 1.25;
-      letter-spacing: 0.03em;
-      word-break: break-word;
+      font-size: clamp(11px, 2.7vw, 15px);
+      font-weight: 650;
+      line-height: 1.2;
+      word-break: break-all;
     }
-    .tile.hero .tag { font-size: 1.7rem; }
-    .tile .meta {
-      font-size: 0.72rem;
-      opacity: 0.82;
-      display: flex;
-      gap: 8px;
-      align-items: center;
+    .tile .pin {
+      position: absolute;
+      top: 2px;
+      right: 3px;
+      font-size: 9px;
+      line-height: 1;
+      opacity: 0.85;
     }
-    .empty {
-      grid-column: 1 / -1;
-      padding: 48px 12px 24px;
-      text-align: center;
-      color: var(--muted);
+    .tile.empty {
+      background: transparent !important;
     }
-    .empty strong {
+    .list-back {
       display: block;
+      margin: 4px 4px 12px;
       color: var(--ink);
-      font-size: 1.15rem;
-      font-weight: 600;
-      margin-bottom: 8px;
+      font-size: 0.95rem;
+    }
+    .list {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .list .tile {
+      min-height: 104px;
+      border-radius: 16px;
+      padding: 12px;
+    }
+    .list .tile .tag {
+      font-size: 1rem;
+      line-height: 1.35;
     }
     .composer {
       position: fixed;
@@ -151,6 +209,25 @@
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
       border-top: 1px solid var(--bar-border);
+    }
+    .cat-pick {
+      display: flex;
+      gap: 6px;
+      padding: 0 2px 8px;
+    }
+    .cat-pick button {
+      flex: 1;
+      min-width: 0;
+      appearance: none;
+      border: 1px solid var(--line);
+      background: transparent;
+      color: var(--ink);
+      border-radius: 999px;
+      font: inherit;
+      font-size: 0.74rem;
+      font-weight: 650;
+      padding: 6px 2px;
+      cursor: pointer;
     }
     .preview {
       display: none;
@@ -255,20 +332,27 @@
       background: var(--line);
       margin: 6px auto 16px;
     }
-    .sheet .swatch {
+    .sheet textarea.body {
       width: 100%;
+      display: block;
       border: 0;
       border-radius: 18px;
-      min-height: 92px;
+      min-height: 4.8em;
+      max-height: none;
+      overflow: hidden;
+      resize: none;
+      white-space: pre-wrap;
+      word-break: break-word;
       color: #fffaf3;
       font: inherit;
-      font-size: 1.6rem;
-      font-weight: 650;
-      letter-spacing: 0.03em;
-      padding: 18px;
-      margin-bottom: 14px;
+      font-size: 1.2rem;
+      font-weight: 600;
+      line-height: 1.5;
+      padding: 16px;
+      margin-bottom: 12px;
       text-align: left;
     }
+    .sheet .cat-pick { padding-bottom: 4px; }
     .sheet label {
       display: block;
       font-size: 0.75rem;
@@ -416,9 +500,15 @@
   </main>
 
   <div class="composer">
+    <div class="cat-pick" id="catPick" role="group" aria-label="分类">
+      <button type="button" data-cat="事业">事业</button>
+      <button type="button" data-cat="个人">个人</button>
+      <button type="button" data-cat="家庭">家庭</button>
+      <button type="button" data-cat="毛选理论">毛选理论</button>
+    </div>
     <div class="preview" id="preview">
       <span>将显示为</span>
-      <input id="tagDraft" maxlength="30" aria-label="墙上显示的文字">
+      <input id="tagDraft" maxlength="15" aria-label="墙上显示的文字">
     </div>
     <div class="row">
       <button class="icon-btn" id="mic" type="button" aria-label="语音记录" hidden>
@@ -434,11 +524,15 @@
   </div>
 
   <div class="sheet-bg" id="sheetBg"></div>
-  <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTag">
+  <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="记录">
     <div class="grab"></div>
-    <input class="swatch" id="sheetTag" maxlength="30" aria-label="标签">
-    <label for="sheetRaw">原话</label>
-    <textarea id="sheetRaw"></textarea>
+    <textarea id="sheetRaw" class="body" aria-label="原话"></textarea>
+    <div class="cat-pick" id="sheetCats" role="group" aria-label="分类">
+      <button type="button" data-cat="事业">事业</button>
+      <button type="button" data-cat="个人">个人</button>
+      <button type="button" data-cat="家庭">家庭</button>
+      <button type="button" data-cat="毛选理论">毛选理论</button>
+    </div>
     <div id="sheetWhen" class="hint" style="padding-left:0"></div>
     <div class="actions">
       <button type="button" class="primary" id="sheetSave">保存</button>
@@ -484,23 +578,52 @@
     const micBtn = document.getElementById("mic");
     const sheet = document.getElementById("sheet");
     const sheetBg = document.getElementById("sheetBg");
-    const sheetTag = document.getElementById("sheetTag");
     const sheetRaw = document.getElementById("sheetRaw");
+    const catPick = document.getElementById("catPick");
+    const sheetCats = document.getElementById("sheetCats");
     const sheetWhen = document.getElementById("sheetWhen");
     const sheetPin = document.getElementById("sheetPin");
     const menu = document.getElementById("menu");
 
+    const CATS = [
+      { id: "事业", color: "#C0392B", tile: "#9E2E24", ink: "#fffaf3" },
+      { id: "个人", color: "#E3B423", tile: "#C99612", ink: "#1a1714" },
+      { id: "家庭", color: "#2E7D4F", tile: "#246643", ink: "#fffaf3" },
+      { id: "毛选理论", color: "#161616", tile: "#3a3a3a", ink: "#f7f3ec" }
+    ];
     let notes = load();
     let openId = null;
     let tagTouched = false;
     let rec = null;
     let listening = false;
+    let captureCat = "个人";
+    let sheetCat = "个人";
+    let viewing = null;
 
+    function isCat(id) {
+      return CATS.some((c) => c.id === id);
+    }
+    function catOf(n) {
+      return n && isCat(n.category) ? n.category : "个人";
+    }
+    function catMeta(id) {
+      return CATS.find((c) => c.id === id) || CATS[1];
+    }
     function load() {
       try {
         const raw = localStorage.getItem(KEY);
         const data = raw ? JSON.parse(raw) : [];
-        return Array.isArray(data) ? data : [];
+        if (!Array.isArray(data)) return [];
+        let dirty = false;
+        data.forEach((n) => {
+          if (!n || typeof n !== "object") return;
+          if (!isCat(n.category)) {
+            n.category = "个人";
+            dirty = true;
+          }
+        });
+        if (dirty) localStorage.setItem(KEY, JSON.stringify(data));
+        return data;
       } catch {
         return [];
       }
@@ -511,7 +634,7 @@
     function uid() {
       return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
     }
-    const WALL_MAX = 30;
+    const WALL_MAX = 15;
     function wallText(text) {
       const t = String(text || "").trim();
       if (t.length <= WALL_MAX) return t;
@@ -534,14 +657,43 @@
       const months = Math.max(1, Math.round(days / 30));
       return months + "个月前";
     }
-    function sorted() {
-      return notes.slice().sort((a, b) => {
+    function ranked(list) {
+      return list.slice().sort((a, b) => {
         if (!!b.pinned !== !!a.pinned) return a.pinned ? -1 : 1;
-        return b.createdAt - a.createdAt;
+        return (b.createdAt || 0) - (a.createdAt || 0);
       });
     }
+    function paintCats(container, selected) {
+      container.querySelectorAll("button").forEach((btn) => {
+        const meta = catMeta(btn.dataset.cat);
+        const on = btn.dataset.cat === selected;
+        btn.classList.toggle("on", on);
+        btn.style.background = on ? meta.color : "transparent";
+        btn.style.color = on ? meta.ink : "var(--ink)";
+        btn.style.borderColor = on ? meta.color : "var(--line)";
+      });
+    }
+    function makeTile(n) {
+      const meta = catMeta(catOf(n));
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "tile";
+      btn.style.background = meta.tile;
+      btn.style.color = meta.ink;
+      const tag = document.createElement("div");
+      tag.className = "tag";
+      tag.textContent = String(n.tag || wallText(n.raw || "")).slice(0, WALL_MAX);
+      btn.appendChild(tag);
+      if (n.pinned) {
+        const pin = document.createElement("span");
+        pin.className = "pin";
+        pin.textContent = "顶";
+        btn.appendChild(pin);
+      }
+      btn.addEventListener("click", () => openSheet(n.id));
+      return btn;
+    }
     function render() {
-      const list = sorted();
       const countEl = document.querySelector("header .count");
       if (countEl) countEl.remove();
       if (notes.length) {
@@ -551,32 +703,65 @@
         document.querySelector("header > div").appendChild(c);
       }
       wall.innerHTML = "";
-      if (!list.length) {
-        const empty = document.createElement("div");
-        empty.className = "empty";
-        empty.innerHTML = "<strong>打开就能看见重点</strong>先记下第一句，它会变成墙上的一块色块。";
-        wall.appendChild(empty);
+      if (viewing) {
+        wall.classList.add("listing");
+        renderListing(viewing);
         return;
       }
-      const firstPinned = list.find((n) => n.pinned);
-      list.forEach((n) => {
-        const btn = document.createElement("button");
-        btn.type = "button";
-        btn.className = "tile" + (firstPinned && n.id === firstPinned.id ? " hero" : "");
-        const bg = n.color || colorFor(n.id);
-        btn.style.background = bg;
-        if (DARK_TEXT.has(bg)) btn.style.color = "#1a1714";
-        const tag = document.createElement("div");
-        tag.className = "tag";
-        tag.textContent = n.tag;
-        const meta = document.createElement("div");
-        meta.className = "meta";
-        meta.textContent = (n.pinned ? "置顶 · " : "") + relative(n.createdAt);
-        btn.appendChild(tag);
-        btn.appendChild(meta);
-        btn.addEventListener("click", () => openSheet(n.id));
-        wall.appendChild(btn);
+      wall.classList.remove("listing");
+      CATS.forEach((meta) => {
+        const group = ranked(notes.filter((n) => catOf(n) === meta.id));
+        const band = document.createElement("section");
+        band.className = "band";
+        band.style.background = meta.color;
+        band.style.color = meta.ink;
+        const head = document.createElement("div");
+        head.className = "band-head";
+        const name = document.createElement("span");
+        name.textContent = meta.id;
+        head.appendChild(name);
+        if (group.length > 6) {
+          const more = document.createElement("button");
+          more.type = "button";
+          more.className = "band-more";
+          more.textContent = "全部 " + group.length;
+          more.addEventListener("click", () => { viewing = meta.id; render(); });
+          head.appendChild(more);
+        }
+        const row = document.createElement("div");
+        row.className = "band-row";
+        group.slice(0, 6).forEach((n) => row.appendChild(makeTile(n)));
+        for (let i = group.slice(0, 6).length; i < 6; i++) {
+          const empty = document.createElement("button");
+          empty.type = "button";
+          empty.className = "tile empty";
+          empty.style.color = meta.ink;
+          empty.style.boxShadow = "inset 0 0 0 1.5px " + (meta.ink === "#1a1714" ? "rgba(26,23,20,0.35)" : "rgba(255,250,243,0.4)");
+          empty.setAttribute("aria-label", "记到" + meta.id);
+          empty.addEventListener("click", () => {
+            captureCat = meta.id;
+            paintCats(catPick, captureCat);
+            draft.focus();
+          });
+          row.appendChild(empty);
+        }
+        band.appendChild(head);
+        band.appendChild(row);
+        wall.appendChild(band);
       });
+    }
+    function renderListing(id) {
+      const meta = catMeta(id);
+      const back = document.createElement("button");
+      back.type = "button";
+      back.className = "list-back";
+      back.textContent = "返回 · " + meta.id;
+      back.addEventListener("click", () => { viewing = null; render(); });
+      const grid = document.createElement("div");
+      grid.className = "list";
+      ranked(notes.filter((n) => catOf(n) === id)).forEach((n) => grid.appendChild(makeTile(n)));
+      wall.appendChild(back);
+      wall.appendChild(grid);
     }
     function updatePreview() {
       const text = draft.value.trim();
@@ -599,6 +784,7 @@
         id,
         raw,
         tag,
+        category: captureCat,
         color: colorFor(id),
         createdAt: Date.now(),
         pinned: false
@@ -614,10 +800,13 @@
       const n = notes.find((x) => x.id === id);
       if (!n) return;
       openId = id;
-      sheetTag.value = n.tag;
-      sheetTag.style.background = n.color || colorFor(n.id);
-      sheetTag.style.color = DARK_TEXT.has(n.color || colorFor(n.id)) ? "#1a1714" : "#fffaf3";
-      sheetRaw.value = n.raw;
+      sheetCat = catOf(n);
+      const meta = catMeta(sheetCat);
+      sheetRaw.value = n.raw || n.tag || "";
+      sheetRaw.style.background = meta.color;
+      sheetRaw.style.color = meta.ink;
+      paintCats(sheetCats, sheetCat);
+      fitSheetRaw();
       const d = new Date(n.createdAt);
       sheetWhen.textContent = "记于 " + d.getFullYear() + "年" + (d.getMonth() + 1) + "月" + d.getDate() + "日 · " + relative(n.createdAt);
       sheetPin.textContent = n.pinned ? "取消置顶" : "置顶";
@@ -636,8 +825,29 @@
       draft.style.height = "auto";
       draft.style.height = Math.min(draft.scrollHeight, 120) + "px";
     }
+    function fitSheetRaw() {
+      sheetRaw.style.height = "auto";
+      sheetRaw.style.height = sheetRaw.scrollHeight + "px";
+    }
 
     draft.addEventListener("input", () => { updatePreview(); autosize(); });
+    sheetRaw.addEventListener("input", fitSheetRaw);
+    catPick.addEventListener("click", (e) => {
+      const btn = e.target.closest("button");
+      if (!btn || !isCat(btn.dataset.cat)) return;
+      captureCat = btn.dataset.cat;
+      paintCats(catPick, captureCat);
+    });
+    sheetCats.addEventListener("click", (e) => {
+      const btn = e.target.closest("button");
+      if (!btn || !isCat(btn.dataset.cat)) return;
+      sheetCat = btn.dataset.cat;
+      const meta = catMeta(sheetCat);
+      sheetRaw.style.background = meta.color;
+      sheetRaw.style.color = meta.ink;
+      paintCats(sheetCats, sheetCat);
+    });
+    paintCats(catPick, captureCat);
     tagDraft.addEventListener("input", () => { tagTouched = true; });
     saveBtn.addEventListener("click", addNote);
     draft.addEventListener("keydown", (e) => {
@@ -649,8 +859,10 @@
     document.getElementById("sheetSave").addEventListener("click", () => {
       const n = current();
       if (!n) return;
-      n.tag = sheetTag.value.trim().slice(0, WALL_MAX) || n.tag;
-      n.raw = sheetRaw.value.trim() || n.raw;
+      const nextRaw = sheetRaw.value.trim() || n.raw;
+      if (nextRaw !== n.raw) n.tag = wallText(nextRaw);
+      n.raw = nextRaw;
+      n.category = sheetCat;
       persist();
       render();
       closeSheet();
@@ -706,6 +918,7 @@
         lines.push("【" + (n.tag || "") + "】");
         if (n.createdAt) lines.push("时间：" + formatStamp(n.createdAt) + "（北京时间）");
         if (n.pinned) lines.push("置顶：是");
+        lines.push("分类：" + catOf(n));
         lines.push("原文：" + String(n.raw || n.tag || "").trim());
       });
       if (!items.length) lines.push("（还没有记录）");
@@ -728,11 +941,13 @@
         const timeM = block.match(/时间：([^\n]+)/);
         const rawM = block.match(/原文：([\s\S]*?)(?=\n\s*【|$)/);
         let raw = rawM ? rawM[1].trim() : "";
-        raw = raw.replace(/\n置顶：.*$/, "").trim();
+        raw = raw.replace(/\n置顶：.*$/, "").replace(/\n分类：.*$/, "").trim();
+        const catM = block.match(/分类：(事业|个人|家庭|毛选理论)/);
         out.push({
           id: uid(),
           tag,
           raw: raw || tag,
+          category: catM ? catM[1] : "个人",
           createdAt: parseStamp(timeM && timeM[1]),
           pinned: /置顶：是/.test(block),
           color: null
@@ -761,6 +976,7 @@
         if (!n || !n.tag) return;
         if (n.id && map.has(n.id)) {
           const merged = Object.assign({}, map.get(n.id), n);
+          if (!isCat(merged.category)) merged.category = "个人";
           map.set(n.id, merged);
           seen.add(noteKey(merged));
           return;
@@ -768,6 +984,7 @@
         const key = noteKey(n);
         if (seen.has(key)) return;
         if (!n.id) n.id = uid();
+        if (!isCat(n.category)) n.category = "个人";
         if (!n.color) n.color = colorFor(n.id);
         map.set(n.id, n);
         seen.add(key);
