@@ -560,6 +560,8 @@
       <label class="file">从文件导入
         <input id="importFile" type="file" accept="text/plain,.txt,.text,application/json,.json,text/markdown,.md" hidden>
       </label>
+      <button type="button" id="updateBtn">检查更新</button>
+      <p class="hint" id="updateMsg">更新后关掉图标再打开即可，不要删除图标。</p>
       <p class="hint">导出时在分享里选「备忘录」保存。要导回：在备忘录里全选复制，点「从备忘录导入」粘贴。也可以从文件导入 .txt 或旧的 JSON。记录只在这台手机、这一种打开方式里（主屏幕图标和 Safari 各存一份）。</p>
     </div>
     <div class="menu-card paste-card" id="pasteCard" hidden>
@@ -1151,9 +1153,40 @@
       });
     }
 
+    let swReg = null;
     if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("./sw.js").catch(() => {});
+      let hadController = !!navigator.serviceWorker.controller;
+      navigator.serviceWorker.addEventListener("controllerchange", () => {
+        if (!hadController) { hadController = true; return; }
+        if (sessionStorage.getItem("yiyanqiang-reloaded")) return;
+        sessionStorage.setItem("yiyanqiang-reloaded", "1");
+        location.reload();
+      });
+      navigator.serviceWorker.register("./sw.js", { scope: "./" }).then((reg) => {
+        swReg = reg;
+        reg.update().catch(() => {});
+        if (reg.waiting) reg.waiting.postMessage({ type: "SKIP_WAITING" });
+        reg.addEventListener("updatefound", () => {
+          const worker = reg.installing;
+          if (!worker) return;
+          worker.addEventListener("statechange", () => {
+            if (worker.state === "installed" && navigator.serviceWorker.controller) {
+              worker.postMessage({ type: "SKIP_WAITING" });
+            }
+          });
+        });
+      }).catch(() => {});
     }
+    document.getElementById("updateBtn").addEventListener("click", async () => {
+      const msg = document.getElementById("updateMsg");
+      try {
+        if (swReg) await swReg.update();
+        if (swReg && swReg.waiting) swReg.waiting.postMessage({ type: "SKIP_WAITING" });
+        msg.textContent = "已检查。有新版本时，关掉这个图标再打开即可，不用删除图标。";
+      } catch {
+        msg.textContent = "这次没连上更新。内容仍在这台手机上。";
+      }
+    });
     window.addEventListener("resize", () => requestAnimationFrame(fitTiles));
     render();
   </script>

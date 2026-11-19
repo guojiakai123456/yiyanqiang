@@ -1,4 +1,4 @@
-const CACHE = "yiyanqiang-v11";
+const CACHE = "yiyanqiang-v12";
 const ASSETS = [
   "./",
   "./index.html",
@@ -21,6 +21,10 @@ self.addEventListener("activate", (event) => {
     )
   );
   self.clients.claim();
+});
+
+self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "SKIP_WAITING") self.skipWaiting();
 });
 
 self.addEventListener("fetch", (event) => {
