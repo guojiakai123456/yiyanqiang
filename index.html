@@ -331,12 +331,11 @@
       color: var(--ink);
       border-radius: 22px 22px 0 0;
       padding: 10px 20px calc(20px + var(--safe-b));
-      transform: translateY(110%);
-      transition: transform 0.28s ease;
+      display: none;
       max-height: 88vh;
       overflow: auto;
     }
-    .sheet.open { transform: translateY(0); }
+    .sheet.open { display: block; }
     .grab {
       width: 40px;
       height: 4px;
@@ -351,7 +350,7 @@
       border-radius: 18px;
       min-height: 4.8em;
       max-height: none;
-      overflow: hidden;
+      overflow: auto;
       resize: none;
       white-space: pre-wrap;
       word-break: break-word;
@@ -818,12 +817,12 @@
       sheetRaw.style.background = meta.color;
       sheetRaw.style.color = meta.ink;
       paintCats(sheetCats, sheetCat);
-      fitSheetRaw();
       const d = new Date(n.createdAt);
       sheetWhen.textContent = "记于 " + d.getFullYear() + "年" + (d.getMonth() + 1) + "月" + d.getDate() + "日 · " + relative(n.createdAt);
       sheetPin.textContent = n.pinned ? "取消置顶" : "置顶";
       sheet.classList.add("open");
       sheetBg.classList.add("open");
+      requestAnimationFrame(fitSheetRaw);
     }
     function closeSheet() {
       sheet.classList.remove("open");
@@ -843,7 +842,7 @@
     }
 
     draft.addEventListener("input", () => { updatePreview(); autosize(); });
-    sheetRaw.addEventListener("input", fitSheetRaw);
+    sheetRaw.addEventListener("compositionend", fitSheetRaw);
     catPick.querySelectorAll("button").forEach((btn) => {
       const meta = catMeta(btn.dataset.cat);
       btn.style.background = meta.color;
