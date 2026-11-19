@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f3eee6">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="目标">
+  <meta name="description" content="一眼看见每个目标：要达成什么，怎么达到，多久达到。">
+  <title>目标</title>
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="apple-touch-icon" href="./icon-180.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
+  <style>
+    :root {
+      --paper: #f3eee6;
+      --ink: #1a1714;
+      --muted: #6b645c;
+      --line: #e2dbd0;
+      --bar: #fffaf3;
+      --safe-b: env(safe-area-inset-bottom, 0px);
+      --safe-t: env(safe-area-inset-top, 0px);
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body {
+      margin: 0;
+      height: 100%;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", "Source Han Sans SC", "Microsoft YaHei", system-ui, sans-serif;
+    }
+    body {
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      padding-top: var(--safe-t);
+      overflow: hidden;
+    }
+    header.top {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      padding: 14px 16px 6px;
+    }
+    #title {
+      flex: 1;
+      min-width: 0;
+      border: 0;
+      background: transparent;
+      color: var(--ink);
+      font: inherit;
+      font-size: 1.55rem;
+      font-weight: 700;
+      line-height: 1.25;
+      letter-spacing: 0.02em;
+      padding: 0;
+      outline: none;
+    }
+    .more {
+      appearance: none;
+      border: 0;
+      background: transparent;
+      color: var(--muted);
+      font: inherit;
+      font-size: 0.85rem;
+      padding: 8px 0;
+      cursor: pointer;
+    }
+    main.board {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 8px 12px 8px;
+    }
+    .bar {
+      flex: 1;
+      min-height: 0;
+      border-radius: 16px;
+      padding: 8px 12px 6px;
+      display: flex;
+      flex-direction: column;
+    }
+    .bar label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      line-height: 1.3;
+      opacity: 0.92;
+    }
+    .bar textarea {
+      flex: 1;
+      min-height: 0;
+      width: 100%;
+      border: 0;
+      background: transparent;
+      color: inherit;
+      font: inherit;
+      font-size: 1.05rem;
+      font-weight: 600;
+      line-height: 1.35;
+      resize: none;
+      outline: none;
+      padding: 4px 0 0;
+    }
+    .dock {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px calc(10px + var(--safe-b));
+      border-top: 1px solid var(--line);
+      background: color-mix(in srgb, var(--bar) 92%, transparent);
+    }
+    .tabs {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      scroll-snap-type: x proximity;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+    .tabs::-webkit-scrollbar { display: none; }
+    .tab {
+      flex: 0 0 auto;
+      scroll-snap-align: start;
+      max-width: 52vw;
+      appearance: none;
+      border: 2px solid transparent;
+      border-radius: 999px;
+      padding: 8px 14px;
+      font: inherit;
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .tab.on { border-color: var(--ink); }
+    .add-tab {
+      flex: 0 0 44px;
+      width: 44px;
+      height: 44px;
+      appearance: none;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: var(--bar);
+      color: var(--ink);
+      font: inherit;
+      font-size: 1.4rem;
+      line-height: 1;
+      cursor: pointer;
+    }
+    .mask {
+      position: fixed;
+      inset: 0;
+      background: rgba(20, 16, 12, 0.42);
+      z-index: 20;
+      display: none;
+    }
+    .mask.open { display: block; }
+    .sheet {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 21;
+      background: var(--bar);
+      color: var(--ink);
+      border-radius: 22px 22px 0 0;
+      padding: 12px 18px calc(18px + var(--safe-b));
+      transform: translateY(110%);
+      transition: transform 0.25s ease;
+      max-height: 86vh;
+      overflow: auto;
+    }
+    .sheet.open { transform: translateY(0); }
+    .sheet h2 {
+      margin: 8px 0 12px;
+      font-size: 1.15rem;
+    }
+    .sheet input[type="text"], .sheet textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      background: var(--paper);
+      color: var(--ink);
+      border-radius: 12px;
+      font: inherit;
+      font-size: 1rem;
+      padding: 10px 12px;
+      outline: none;
+    }
+    .sheet textarea { min-height: 8em; resize: vertical; }
+    .colors {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 12px 0;
+    }
+    .colors button {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: 2px solid transparent;
+      cursor: pointer;
+    }
+    .colors button.on { border-color: var(--ink); }
+    .actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .actions button, .menu-card button, .menu-card label.file {
+      appearance: none;
+      border: 1px solid var(--line);
+      background: var(--paper);
+      color: var(--ink);
+      font: inherit;
+      border-radius: 12px;
+      padding: 10px 14px;
+      cursor: pointer;
+    }
+    .actions .primary {
+      background: var(--ink);
+      color: var(--paper);
+      border-color: var(--ink);
+      font-weight: 650;
+    }
+    .menu {
+      position: fixed;
+      inset: 0;
+      z-index: 30;
+      display: none;
+      background: rgba(20, 16, 12, 0.42);
+    }
+    .menu.open { display: block; }
+    .menu-card {
+      position: absolute;
+      right: 12px;
+      top: calc(var(--safe-t) + 48px);
+      background: var(--bar);
+      border-radius: 16px;
+      padding: 8px;
+      min-width: 220px;
+      box-shadow: 0 10px 28px rgba(40, 28, 16, 0.12);
+    }
+    .menu-card.wide {
+      left: 12px;
+      right: 12px;
+      min-width: 0;
+    }
+    .menu-card button, .menu-card label.file {
+      display: block;
+      width: 100%;
+      text-align: left;
+      border: 0;
+      background: transparent;
+    }
+    .hint {
+      color: var(--muted);
+      font-size: 0.78rem;
+      line-height: 1.45;
+      padding: 4px 8px 8px;
+    }
+    #updateMsg { min-height: 1.2em; }
+  </style>
+</head>
+<body>
+  <header class="top">
+    <input id="title" type="text" aria-label="本页标题" autocomplete="off">
+    <button class="more" id="menuBtn" type="button">更多</button>
+  </header>
+  <main class="board" id="board"></main>
+  <nav class="dock" aria-label="页面">
+    <div class="tabs" id="tabs"></div>
+    <button class="add-tab" id="addBtn" type="button" aria-label="添加一页">+</button>
+  </nav>
+
+  <div class="mask" id="mask"></div>
+  <div class="sheet" id="addSheet" role="dialog" aria-modal="true" aria-labelledby="addHeading">
+    <h2 id="addHeading">新的一页</h2>
+    <input id="newTitle" type="text" placeholder="这一页的名称" aria-label="这一页的名称">
+    <div class="colors" id="colorChoices"></div>
+    <div class="actions">
+      <button type="button" id="cancelAdd">取消</button>
+      <button type="button" class="primary" id="createPage">添加</button>
+    </div>
+  </div>
+
+  <div class="menu" id="menu">
+    <div class="menu-card" id="menuMain">
+      <button type="button" id="exportBtn">导出备份</button>
+      <button type="button" id="importBtn">从备忘录导入</button>
+      <button type="button" id="updateBtn">检查更新</button>
+      <p class="hint" id="updateMsg">改字会自动留下。更新后关掉图标再打开即可，不要删除图标。</p>
+    </div>
+    <div class="menu-card wide" id="importCard" hidden>
+      <p class="hint">在备忘录里全选复制备份，粘贴到这里。已有的页会按编号合并，不会整本清掉。</p>
+      <textarea id="importText" placeholder="粘贴目标板备份"></textarea>
+      <div class="actions">
+        <button type="button" id="importCancel">返回</button>
+        <button type="button" class="primary" id="importDo">导入</button>
+      </div>
+      <p class="hint" id="importStatus"></p>
+    </div>
+  </div>
+
+  <script>
+    const KEY = "mubiao.v1";
+    const COLORS = [
+      { hex: "#C0392B", ink: "#fffaf3" },
+      { hex: "#2E7D4F", ink: "#fffaf3" },
+      { hex: "#E3B423", ink: "#1a1714" },
+      { hex: "#2F5D8A", ink: "#fffaf3" },
+      { hex: "#1A1714", ink: "#f7f3ec" },
+      { hex: "#8E8A84", ink: "#fffaf3" },
+      { hex: "#2A6F7F", ink: "#fffaf3" }
+    ];
+    const BARS = [
+      { key: "goal", label: "目标" },
+      { key: "how", label: "如何达到此目标" },
+      { key: "when", label: "多久达到此目标" },
+      { key: "strategy", label: "达到此目标的策略有什么" },
+      { key: "issues", label: "会遇到哪些问题，如何解决？" }
+    ];
+
+    const titleInput = document.getElementById("title");
+    const board = document.getElementById("board");
+    const tabs = document.getElementById("tabs");
+    const menu = document.getElementById("menu");
+    const menuMain = document.getElementById("menuMain");
+    const importCard = document.getElementById("importCard");
+    const mask = document.getElementById("mask");
+    const addSheet = document.getElementById("addSheet");
+    let newColor = COLORS[1].hex;
+
+    function uid() {
+      return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+    }
+    function inkFor(hex) {
+      const found = COLORS.find((c) => c.hex.toLowerCase() === String(hex || "").toLowerCase());
+      if (found) return found.ink;
+      const n = parseInt(String(hex).replace("#", ""), 16);
+      if (!Number.isFinite(n)) return "#fffaf3";
+      const r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+      return (r * 0.3 + g * 0.59 + b * 0.11) > 160 ? "#1a1714" : "#fffaf3";
+    }
+    function emptyBars() {
+      return { goal: "", how: "", when: "", strategy: "", issues: "" };
+    }
+    function makePage(partial) {
+      const color = (partial && partial.color) || COLORS[0].hex;
+      return {
+        id: (partial && partial.id) || uid(),
+        title: (partial && partial.title) || "新的一页",
+        color: color,
+        ink: (partial && partial.ink) || inkFor(color),
+        bars: Object.assign(emptyBars(), (partial && partial.bars) || {})
+      };
+    }
+    function defaultState() {
+      return {
+        activeId: "",
+        pages: [makePage({ title: "喜悦地库洗车", color: "#C0392B", ink: "#fffaf3" })]
+      };
+    }
+    function load() {
+      try {
+        const raw = localStorage.getItem(KEY);
+        if (!raw) {
+          const fresh = defaultState();
+          fresh.activeId = fresh.pages[0].id;
+          return fresh;
+        }
+        const data = JSON.parse(raw);
+        const pages = Array.isArray(data.pages) ? data.pages.map((p) => makePage(p)) : [];
+        if (!pages.length) {
+          const fresh = defaultState();
+          fresh.activeId = fresh.pages[0].id;
+          return fresh;
+        }
+        const activeId = pages.some((p) => p.id === data.activeId) ? data.activeId : pages[0].id;
+        return { activeId, pages };
+      } catch {
+        const fresh = defaultState();
+        fresh.activeId = fresh.pages[0].id;
+        return fresh;
+      }
+    }
+    let state = load();
+    function save() {
+      localStorage.setItem(KEY, JSON.stringify(state));
+    }
+    function current() {
+      return state.pages.find((p) => p.id === state.activeId) || state.pages[0];
+    }
+    function shade(hex, amount) {
+      const n = parseInt(String(hex).replace("#", ""), 16);
+      if (!Number.isFinite(n)) return hex;
+      let r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+      const toward = amount < 0 ? 0 : 255;
+      const p = Math.min(0.45, Math.abs(amount));
+      r = Math.round(r + (toward - r) * p);
+      g = Math.round(g + (toward - g) * p);
+      b = Math.round(b + (toward - b) * p);
+      return "#" + [r, g, b].map((v) => v.toString(16).padStart(2, "0")).join("");
+    }
+
+    function buildBoard() {
+      board.innerHTML = "";
+      BARS.forEach((bar) => {
+        const section = document.createElement("section");
+        section.className = "bar";
+        const label = document.createElement("label");
+        label.setAttribute("for", "bar-" + bar.key);
+        label.textContent = bar.label;
+        const area = document.createElement("textarea");
+        area.id = "bar-" + bar.key;
+        area.setAttribute("aria-label", bar.label);
+        area.addEventListener("input", () => {
+          const page = current();
+          page.bars[bar.key] = area.value;
+          save();
+        });
+        section.appendChild(label);
+        section.appendChild(area);
+        board.appendChild(section);
+      });
+    }
+    function paint() {
+      const page = current();
+      if (document.activeElement !== titleInput) titleInput.value = page.title;
+      const theme = document.querySelector('meta[name="theme-color"]');
+      if (theme) theme.content = "#f3eee6";
+      BARS.forEach((bar, i) => {
+        const area = document.getElementById("bar-" + bar.key);
+        const section = area.parentElement;
+        if (document.activeElement !== area) area.value = page.bars[bar.key] || "";
+        section.style.background = shade(page.color, -0.06 * i);
+        section.style.color = page.ink;
+      });
+      tabs.innerHTML = "";
+      state.pages.forEach((p) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "tab" + (p.id === page.id ? " on" : "");
+        btn.textContent = p.title || "未命名";
+        btn.style.background = p.color;
+        btn.style.color = p.ink;
+        btn.addEventListener("click", () => {
+          state.activeId = p.id;
+          save();
+          paint();
+          btn.scrollIntoView({ inline: "center", block: "nearest" });
+        });
+        tabs.appendChild(btn);
+      });
+      const active = tabs.querySelector(".tab.on");
+      if (active) active.scrollIntoView({ inline: "center", block: "nearest" });
+    }
+    function go(delta) {
+      const i = state.pages.findIndex((p) => p.id === state.activeId);
+      const next = i + delta;
+      if (next < 0 || next >= state.pages.length) return;
+      state.activeId = state.pages[next].id;
+      save();
+      paint();
+    }
+
+    titleInput.addEventListener("input", () => {
+      current().title = titleInput.value;
+      save();
+      const active = tabs.querySelector(".tab.on");
+      if (active) active.textContent = titleInput.value || "未命名";
+    });
+
+    let touchX = 0;
+    let touchY = 0;
+    board.addEventListener("touchstart", (e) => {
+      if (e.target.closest("textarea")) { touchX = 0; return; }
+      touchX = e.changedTouches[0].clientX;
+      touchY = e.changedTouches[0].clientY;
+    }, { passive: true });
+    board.addEventListener("touchend", (e) => {
+      if (!touchX) return;
+      const dx = e.changedTouches[0].clientX - touchX;
+      const dy = e.changedTouches[0].clientY - touchY;
+      touchX = 0;
+      if (Math.abs(dx) < 48 || Math.abs(dx) < Math.abs(dy)) return;
+      go(dx < 0 ? 1 : -1);
+    }, { passive: true });
+
+    function openAdd() {
+      document.getElementById("newTitle").value = "";
+      newColor = COLORS[state.pages.length % COLORS.length].hex;
+      paintColors();
+      mask.classList.add("open");
+      addSheet.classList.add("open");
+      document.getElementById("newTitle").focus();
+    }
+    function closeAdd() {
+      mask.classList.remove("open");
+      addSheet.classList.remove("open");
+    }
+    function paintColors() {
+      const box = document.getElementById("colorChoices");
+      box.innerHTML = "";
+      COLORS.forEach((c) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.style.background = c.hex;
+        btn.className = c.hex === newColor ? "on" : "";
+        btn.setAttribute("aria-label", c.hex);
+        btn.addEventListener("click", () => {
+          newColor = c.hex;
+          paintColors();
+        });
+        box.appendChild(btn);
+      });
+    }
+    document.getElementById("addBtn").addEventListener("click", openAdd);
+    document.getElementById("cancelAdd").addEventListener("click", closeAdd);
+    mask.addEventListener("click", closeAdd);
+    document.getElementById("createPage").addEventListener("click", () => {
+      const page = makePage({
+        title: document.getElementById("newTitle").value.trim() || "新的一页",
+        color: newColor,
+        ink: inkFor(newColor)
+      });
+      state.pages.push(page);
+      state.activeId = page.id;
+      save();
+      closeAdd();
+      paint();
+    });
+
+    function closeMenu() {
+      menu.classList.remove("open");
+      menuMain.hidden = false;
+      importCard.hidden = true;
+    }
+    document.getElementById("menuBtn").addEventListener("click", () => menu.classList.add("open"));
+    menu.addEventListener("click", (e) => { if (e.target === menu) closeMenu(); });
+
+    function shanghaiStamp(ts) {
+      const parts = new Intl.DateTimeFormat("en-GB", {
+        timeZone: "Asia/Shanghai",
+        year: "numeric", month: "2-digit", day: "2-digit",
+        hour: "2-digit", minute: "2-digit", hourCycle: "h23"
+      }).formatToParts(new Date(ts));
+      const get = (type) => parts.find((p) => p.type === type).value;
+      return get("year") + "-" + get("month") + "-" + get("day") + " " + get("hour") + ":" + get("minute");
+    }
+    function formatBackup() {
+      const lines = ["目标板备份", "导出时间：" + shanghaiStamp(Date.now()) + "（北京时间）", ""];
+      state.pages.forEach((p, i) => {
+        if (i) lines.push("");
+        lines.push("【" + (p.title || "未命名") + "】");
+        lines.push("编号：" + p.id);
+        lines.push("颜色：" + p.color);
+        BARS.forEach((bar) => {
+          lines.push(bar.label + "：" + String(p.bars[bar.key] || "").replace(/\n/g, "\n"));
+        });
+      });
+      return lines.join("\n") + "\n";
+    }
+    function parseBackup(text) {
+      const src = String(text || "").replace(/^\uFEFF/, "").replace(/\r\n/g, "\n");
+      const chunks = src.split(/\n(?=【)/);
+      const pages = [];
+      chunks.forEach((chunk) => {
+        const titleM = chunk.match(/【([^】]*)】/);
+        if (!titleM) return;
+        const page = makePage({ title: titleM[1].trim() || "未命名" });
+        const idM = chunk.match(/编号：([^\n]+)/);
+        if (idM) page.id = idM[1].trim();
+        const colorM = chunk.match(/颜色：([#A-Fa-f0-9]{7})/);
+        if (colorM) {
+          page.color = colorM[1];
+          page.ink = inkFor(page.color);
+        }
+        BARS.forEach((bar) => {
+          const re = new RegExp(bar.label.replace(/[？?]/g, "[？?]") + "：([\\s\\S]*?)(?=\\n(?:编号|颜色|目标|如何达到此目标|多久达到此目标|达到此目标的策略有什么|会遇到哪些问题，如何解决[？?])：|\\n【|$)");
+          const m = chunk.match(re);
+          page.bars[bar.key] = m ? m[1].trim() : "";
+        });
+        pages.push(page);
+      });
+      return pages;
+    }
+    function mergePages(pages) {
+      pages.forEach((p) => {
+        const prev = state.pages.find((x) => x.id === p.id);
+        if (prev) {
+          prev.title = p.title || prev.title;
+          prev.color = p.color || prev.color;
+          prev.ink = inkFor(prev.color);
+          prev.bars = Object.assign(emptyBars(), prev.bars, p.bars);
+        } else {
+          state.pages.push(p);
+        }
+      });
+      if (!state.pages.some((p) => p.id === state.activeId)) state.activeId = state.pages[0].id;
+      save();
+      paint();
+    }
+    document.getElementById("exportBtn").addEventListener("click", async () => {
+      const text = formatBackup();
+      const filename = "目标板备份.txt";
+      closeMenu();
+      try {
+        const file = new File([text], filename, { type: "text/plain" });
+        if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+          await navigator.share({ files: [file], title: "目标板备份" });
+          return;
+        }
+        if (navigator.share) {
+          await navigator.share({ title: "目标板备份", text: text });
+          return;
+        }
+      } catch (err) {
+        if (err && err.name === "AbortError") return;
+      }
+      const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    });
+    document.getElementById("importBtn").addEventListener("click", () => {
+      menuMain.hidden = true;
+      importCard.hidden = false;
+      document.getElementById("importStatus").textContent = "";
+      document.getElementById("importText").value = "";
+    });
+    document.getElementById("importCancel").addEventListener("click", () => {
+      menuMain.hidden = false;
+      importCard.hidden = true;
+    });
+    document.getElementById("importDo").addEventListener("click", () => {
+      const pages = parseBackup(document.getElementById("importText").value);
+      if (!pages.length) {
+        document.getElementById("importStatus").textContent = "没有认出备份。请粘贴完整内容，里面要有【标题】。";
+        return;
+      }
+      mergePages(pages);
+      closeMenu();
+    });
+
+    let swReg = null;
+    if ("serviceWorker" in navigator) {
+      let hadController = !!navigator.serviceWorker.controller;
+      navigator.serviceWorker.addEventListener("controllerchange", () => {
+        if (!hadController) { hadController = true; return; }
+        if (sessionStorage.getItem("mubiao-reloaded")) return;
+        sessionStorage.setItem("mubiao-reloaded", "1");
+        location.reload();
+      });
+      navigator.serviceWorker.register("./sw.js", { scope: "./" }).then((reg) => {
+        swReg = reg;
+        reg.update().catch(() => {});
+        if (reg.waiting) reg.waiting.postMessage({ type: "SKIP_WAITING" });
+        reg.addEventListener("updatefound", () => {
+          const worker = reg.installing;
+          if (!worker) return;
+          worker.addEventListener("statechange", () => {
+            if (worker.state === "installed" && navigator.serviceWorker.controller) {
+              worker.postMessage({ type: "SKIP_WAITING" });
+            }
+          });
+        });
+      }).catch(() => {});
+    }
+    document.getElementById("updateBtn").addEventListener("click", async () => {
+      const msg = document.getElementById("updateMsg");
+      try {
+        if (swReg) await swReg.update();
+        if (swReg && swReg.waiting) swReg.waiting.postMessage({ type: "SKIP_WAITING" });
+        msg.textContent = "已检查。有新版本时，关掉这个图标再打开即可，不用删除图标。";
+      } catch {
+        msg.textContent = "这次没连上更新。内容仍在这台手机上。";
+      }
+    });
+
+    if (!localStorage.getItem(KEY)) save();
+    buildBoard();
+    paint();
+  </script>
+</body>
+</html>
