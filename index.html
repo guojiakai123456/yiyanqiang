@@ -114,8 +114,8 @@
       min-height: 0;
       border-radius: 16px;
       padding: 8px;
-      display: flex;
-      flex-direction: column;
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
       gap: 6px;
     }
     .band-head {
@@ -137,25 +137,29 @@
       padding: 0;
       cursor: pointer;
     }
-    .band-more {
-      font-size: 0.75rem;
-      font-weight: 600;
-      opacity: 0.88;
-    }
     .band-row {
       flex: 1;
       min-height: 0;
-      display: grid;
-      grid-template-columns: repeat(6, minmax(0, 1fr));
+      display: flex;
       gap: 5px;
+      overflow-x: auto;
+      overflow-y: hidden;
+      scroll-snap-type: x proximity;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
     }
+    .band-row::-webkit-scrollbar { display: none; }
     .tile {
       position: relative;
       appearance: none;
       border: 0;
       border-radius: 10px;
+      flex: 0 0 calc((100% - 25px) / 6);
+      width: calc((100% - 25px) / 6);
+      align-self: stretch;
+      height: auto;
+      scroll-snap-align: start;
       min-width: 0;
-      min-height: 0;
       padding: 4px 5px;
       display: flex;
       align-items: flex-start;
@@ -210,6 +214,8 @@
       -webkit-backdrop-filter: blur(16px);
       border-top: 1px solid var(--bar-border);
     }
+    #catPick { display: none; }
+    #catPick.ready { display: flex; }
     .cat-pick {
       display: flex;
       gap: 6px;
@@ -519,7 +525,6 @@
         </svg>
       </button>
       <textarea id="draft" rows="1" placeholder="说一句，或打一行" enterkeyhint="done"></textarea>
-      <button class="save" id="save" type="button" disabled>记下</button>
     </div>
   </div>
 
@@ -574,7 +579,6 @@
     const draft = document.getElementById("draft");
     const tagDraft = document.getElementById("tagDraft");
     const preview = document.getElementById("preview");
-    const saveBtn = document.getElementById("save");
     const micBtn = document.getElementById("mic");
     const sheet = document.getElementById("sheet");
     const sheetBg = document.getElementById("sheetBg");
@@ -596,9 +600,7 @@
     let tagTouched = false;
     let rec = null;
     let listening = false;
-    let captureCat = "个人";
     let sheetCat = "个人";
-    let viewing = null;
 
     function isCat(id) {
       return CATS.some((c) => c.id === id);
@@ -703,11 +705,6 @@
         document.querySelector("header > div").appendChild(c);
       }
       wall.innerHTML = "";
-      if (viewing) {
-        wall.classList.add("listing");
-        renderListing(viewing);
-        return;
-      }
       wall.classList.remove("listing");
       CATS.forEach((meta) => {
         const group = ranked(notes.filter((n) => catOf(n) === meta.id));
@@ -720,29 +717,13 @@
         const name = document.createElement("span");
         name.textContent = meta.id;
         head.appendChild(name);
-        if (group.length > 6) {
-          const more = document.createElement("button");
-          more.type = "button";
-          more.className = "band-more";
-          more.textContent = "全部 " + group.length;
-          more.addEventListener("click", () => { viewing = meta.id; render(); });
-          head.appendChild(more);
-        }
         const row = document.createElement("div");
         row.className = "band-row";
-        group.slice(0, 6).forEach((n) => row.appendChild(makeTile(n)));
-        for (let i = group.slice(0, 6).length; i < 6; i++) {
-          const empty = document.createElement("button");
-          empty.type = "button";
+        group.forEach((n) => row.appendChild(makeTile(n)));
+        for (let i = group.length; i < 6; i++) {
+          const empty = document.createElement("div");
           empty.className = "tile empty";
-          empty.style.color = meta.ink;
           empty.style.boxShadow = "inset 0 0 0 1.5px " + (meta.ink === "#1a1714" ? "rgba(26,23,20,0.35)" : "rgba(255,250,243,0.4)");
-          empty.setAttribute("aria-label", "记到" + meta.id);
-          empty.addEventListener("click", () => {
-            captureCat = meta.id;
-            paintCats(catPick, captureCat);
-            draft.focus();
-          });
           row.appendChild(empty);
         }
         band.appendChild(head);
@@ -750,22 +731,10 @@
         wall.appendChild(band);
       });
     }
-    function renderListing(id) {
-      const meta = catMeta(id);
-      const back = document.createElement("button");
-      back.type = "button";
-      back.className = "list-back";
-      back.textContent = "返回 · " + meta.id;
-      back.addEventListener("click", () => { viewing = null; render(); });
-      const grid = document.createElement("div");
-      grid.className = "list";
-      ranked(notes.filter((n) => catOf(n) === id)).forEach((n) => grid.appendChild(makeTile(n)));
-      wall.appendChild(back);
-      wall.appendChild(grid);
-    }
     function updatePreview() {
       const text = draft.value.trim();
-      saveBtn.disabled = !text;
+      const ready = !!text && !listening;
+      catPick.classList.toggle("ready", ready);
       if (!text) {
         preview.classList.remove("show");
         tagTouched = false;
@@ -775,16 +744,16 @@
       preview.classList.add("show");
       if (!tagTouched) tagDraft.value = wallText(text);
     }
-    function addNote() {
+    function addNote(category) {
       const raw = draft.value.trim();
-      if (!raw) return;
+      if (!raw || !isCat(category)) return;
       const tag = (tagDraft.value.trim() || wallText(raw)).slice(0, WALL_MAX);
       const id = uid();
       notes.push({
         id,
         raw,
         tag,
-        category: captureCat,
+        category: category,
         color: colorFor(id),
         createdAt: Date.now(),
         pinned: false
@@ -832,11 +801,16 @@
 
     draft.addEventListener("input", () => { updatePreview(); autosize(); });
     sheetRaw.addEventListener("input", fitSheetRaw);
+    catPick.querySelectorAll("button").forEach((btn) => {
+      const meta = catMeta(btn.dataset.cat);
+      btn.style.background = meta.color;
+      btn.style.color = meta.ink;
+      btn.style.borderColor = meta.color;
+    });
     catPick.addEventListener("click", (e) => {
       const btn = e.target.closest("button");
       if (!btn || !isCat(btn.dataset.cat)) return;
-      captureCat = btn.dataset.cat;
-      paintCats(catPick, captureCat);
+      addNote(btn.dataset.cat);
     });
     sheetCats.addEventListener("click", (e) => {
       const btn = e.target.closest("button");
@@ -847,13 +821,11 @@
       sheetRaw.style.color = meta.ink;
       paintCats(sheetCats, sheetCat);
     });
-    paintCats(catPick, captureCat);
     tagDraft.addEventListener("input", () => { tagTouched = true; });
-    saveBtn.addEventListener("click", addNote);
     draft.addEventListener("keydown", (e) => {
       if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
-        addNote();
+        updatePreview();
       }
     });
     document.getElementById("sheetSave").addEventListener("click", () => {
@@ -1107,17 +1079,19 @@
         let text = "";
         for (let i = 0; i < ev.results.length; i++) text += ev.results[i][0].transcript;
         draft.value = text;
-        updatePreview();
         autosize();
       };
       rec.onend = () => {
         listening = false;
         micBtn.classList.remove("live");
         micBtn.setAttribute("aria-label", "语音记录");
+        updatePreview();
+        autosize();
       };
       rec.onerror = () => {
         listening = false;
         micBtn.classList.remove("live");
+        updatePreview();
       };
       micBtn.addEventListener("click", () => {
         if (!rec) return;
@@ -1126,6 +1100,7 @@
           return;
         }
         listening = true;
+        catPick.classList.remove("ready");
         micBtn.classList.add("live");
         micBtn.setAttribute("aria-label", "停止录音");
         try { rec.start(); } catch {
