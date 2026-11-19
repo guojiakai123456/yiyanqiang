@@ -518,6 +518,7 @@
       <button type="button" data-cat="个人">个人</button>
       <button type="button" data-cat="家庭">家庭</button>
       <button type="button" data-cat="毛选理论">毛选理论</button>
+      <button type="button" data-cat="目标">目标</button>
     </div>
     <div class="preview" id="preview">
       <span>将显示为</span>
@@ -544,6 +545,7 @@
       <button type="button" data-cat="个人">个人</button>
       <button type="button" data-cat="家庭">家庭</button>
       <button type="button" data-cat="毛选理论">毛选理论</button>
+      <button type="button" data-cat="目标">目标</button>
     </div>
     <div id="sheetWhen" class="hint" style="padding-left:0"></div>
     <div class="actions">
@@ -600,7 +602,8 @@
       { id: "事业", color: "#C0392B", tile: "#9E2E24", ink: "#fffaf3" },
       { id: "个人", color: "#E3B423", tile: "#C99612", ink: "#1a1714" },
       { id: "家庭", color: "#2E7D4F", tile: "#246643", ink: "#fffaf3" },
-      { id: "毛选理论", color: "#161616", tile: "#3a3a3a", ink: "#f7f3ec" }
+      { id: "毛选理论", color: "#161616", tile: "#3a3a3a", ink: "#f7f3ec" },
+      { id: "目标", color: "#A7A29A", tile: "#6F6B66", ink: "#fffaf3" }
     ];
     let notes = load();
     let openId = null;
@@ -954,7 +957,7 @@
         const rawM = block.match(/原文：([\s\S]*?)(?=\n\s*【|$)/);
         let raw = rawM ? rawM[1].trim() : "";
         raw = raw.replace(/\n置顶：.*$/, "").replace(/\n分类：.*$/, "").trim();
-        const catM = block.match(/分类：(事业|个人|家庭|毛选理论)/);
+        const catM = block.match(/分类：(事业|个人|家庭|毛选理论|目标)/);
         out.push({
           id: uid(),
           tag,
