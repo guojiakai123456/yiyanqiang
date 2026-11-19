@@ -1,12 +1,12 @@
-const CACHE = "mubiao-v2";
+const CACHE = "mubiao-v3";
 const ASSETS = [
   "./",
   "./index.html",
   "./manifest.webmanifest",
-  "./qiangshi-180.png",
-  "./qiangshi-192.png",
-  "./qiangshi-512.png",
-  "./qiangshi-1024.png"
+  "./mubiao-180.png",
+  "./mubiao-192.png",
+  "./mubiao-512.png",
+  "./mubiao-1024.png"
 ];
 
 self.addEventListener("install", (event) => {

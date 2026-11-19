@@ -11,9 +11,9 @@
   <meta name="description" content="一眼看见每个目标：要达成什么，怎么达到，多久达到。">
   <title>目标</title>
   <link rel="manifest" href="./manifest.webmanifest">
-  <link rel="apple-touch-icon" href="./qiangshi-180.png">
-  <link rel="icon" type="image/png" sizes="192x192" href="./qiangshi-192.png">
-  <link rel="icon" type="image/png" sizes="512x512" href="./qiangshi-512.png">
+  <link rel="apple-touch-icon" href="./mubiao-180.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="./mubiao-192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="./mubiao-512.png">
   <style>
     :root {
       --paper: #f3eee6;
@@ -41,16 +41,9 @@
     }
     header.top {
       display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 12px 16px 6px;
-    }
-    header.top .logo-mark {
-      width: 84px;
-      height: 84px;
-      flex: 0 0 84px;
-      display: block;
-      object-fit: contain;
+      align-items: flex-start;
+      gap: 8px;
+      padding: 14px 16px 6px;
     }
     #title {
       flex: 1;
@@ -250,7 +243,7 @@
     .menu-card {
       position: absolute;
       right: 12px;
-      top: calc(var(--safe-t) + 108px);
+      top: calc(var(--safe-t) + 48px);
       background: var(--bar);
       border-radius: 16px;
       padding: 8px;
@@ -280,7 +273,6 @@
 </head>
 <body>
   <header class="top">
-    <img class="logo-mark" src="./qiangshi-512.png" width="512" height="512" alt="强势文化">
     <input id="title" type="text" aria-label="本页标题" autocomplete="off">
     <button class="more" id="menuBtn" type="button">更多</button>
   </header>
