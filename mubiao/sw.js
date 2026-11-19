@@ -1,4 +1,4 @@
-const CACHE = "mubiao-v3";
+const CACHE = "mubiao-v4";
 const ASSETS = [
   "./",
   "./index.html",
