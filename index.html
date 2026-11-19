@@ -46,10 +46,12 @@
       font-family: "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", "Source Han Sans SC", "Microsoft YaHei", system-ui, sans-serif;
     }
     body {
+      height: 100dvh;
       min-height: 100dvh;
       display: flex;
       flex-direction: column;
       padding-top: var(--safe-t);
+      overflow: hidden;
     }
     main {
       flex: 1;
@@ -157,19 +159,24 @@
       flex: 0 0 calc((100% - 25px) / 6);
       width: calc((100% - 25px) / 6);
       align-self: stretch;
-      height: auto;
+      height: 100%;
+      min-height: 0;
+      overflow: hidden;
       scroll-snap-align: start;
       min-width: 0;
-      padding: 4px 5px;
+      padding: 3px;
       display: flex;
       align-items: flex-start;
       text-align: left;
       cursor: pointer;
     }
     .tile .tag {
-      font-size: clamp(11px, 2.7vw, 15px);
-      font-weight: 650;
-      line-height: 1.2;
+      width: 100%;
+      margin: 0;
+      font-size: 15px;
+      font-weight: 700;
+      line-height: 1.08;
+      letter-spacing: 0;
       word-break: break-all;
     }
     .tile .pin {
@@ -514,7 +521,7 @@
     </div>
     <div class="preview" id="preview">
       <span>将显示为</span>
-      <input id="tagDraft" maxlength="15" aria-label="墙上显示的文字">
+      <input id="tagDraft" maxlength="30" aria-label="墙上显示的文字">
     </div>
     <div class="row">
       <button class="icon-btn" id="mic" type="button" aria-label="语音记录" hidden>
@@ -636,7 +643,7 @@
     function uid() {
       return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
     }
-    const WALL_MAX = 15;
+    const WALL_MAX = 30;
     function wallText(text) {
       const t = String(text || "").trim();
       if (t.length <= WALL_MAX) return t;
@@ -675,6 +682,38 @@
         btn.style.borderColor = on ? meta.color : "var(--line)";
       });
     }
+    function tileLabel(n) {
+      const raw = String(n.raw || "").trim();
+      const tag = String(n.tag || "").trim();
+      if (raw && (!tag || raw.startsWith(tag))) return wallText(raw);
+      return wallText(tag || raw);
+    }
+    function fitTiles() {
+      document.querySelectorAll(".band-row .tile:not(.empty)").forEach((tile) => {
+        const el = tile.querySelector(".tag");
+        if (!el) return;
+        const maxH = tile.clientHeight - 4;
+        if (maxH < 16) return;
+        el.style.width = "100%";
+        el.style.lineHeight = "1.05";
+        let size = Math.min(48, maxH);
+        el.style.fontSize = size + "px";
+        while (size > 8 && el.scrollHeight > maxH + 1) {
+          size -= 1;
+          el.style.fontSize = size + "px";
+        }
+        let lh = 1.05;
+        while (lh < 1.45 && el.scrollHeight < maxH * 0.9) {
+          const next = Math.round((lh + 0.04) * 100) / 100;
+          el.style.lineHeight = String(next);
+          if (el.scrollHeight > maxH + 1) {
+            el.style.lineHeight = String(lh);
+            break;
+          }
+          lh = next;
+        }
+      });
+    }
     function makeTile(n) {
       const meta = catMeta(catOf(n));
       const btn = document.createElement("button");
@@ -684,7 +723,7 @@
       btn.style.color = meta.ink;
       const tag = document.createElement("div");
       tag.className = "tag";
-      tag.textContent = String(n.tag || wallText(n.raw || "")).slice(0, WALL_MAX);
+      tag.textContent = tileLabel(n);
       btn.appendChild(tag);
       if (n.pinned) {
         const pin = document.createElement("span");
@@ -730,6 +769,7 @@
         band.appendChild(row);
         wall.appendChild(band);
       });
+      requestAnimationFrame(fitTiles);
     }
     function updatePreview() {
       const text = draft.value.trim();
@@ -1113,6 +1153,7 @@
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("./sw.js").catch(() => {});
     }
+    window.addEventListener("resize", () => requestAnimationFrame(fitTiles));
     render();
   </script>
 </body>
